@@ -4,55 +4,74 @@ import { usersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { generateToken } from "@/lib/jwt";
+import { z } from "zod";
 
-interface LoginRequest {
-  username: string;
-  password: string;
-}
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { username, password } = body as LoginRequest;
-
-  if (!username || !password) {
-    return NextResponse.json(
-      { message: "Username and password are required" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const body = await request.json();
+
+    //  Validate input
+    const validation = loginSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { message: validation.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = validation.data;
+
+    //  Find user by email
     const users = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.username, username))
+      .where(eq(usersTable.email, email))
       .limit(1);
 
     if (users.length === 0) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
-    const user = users[0];
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
       return NextResponse.json(
-        { message: "Invalid password" },
+        { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
+    const user = users[0];
+
+    //  Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { message: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
+    //  Generate token and return response
     const token = generateToken(user);
 
     return NextResponse.json(
       {
         message: "Login successful",
-        data: { username, role: user.role, token },
+        data: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          token,
+        },
       },
       { status: 200 }
     );
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json({ message: "Failed to login" }, { status: 500 });
+    return NextResponse.json(
+      { message: "An unexpected error occurred" },
+      { status: 500 }
+    );
   }
 }

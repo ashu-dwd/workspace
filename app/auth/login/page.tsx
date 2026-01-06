@@ -4,6 +4,8 @@ import {
   Form,
   FormControl,
   FormDescription,
+  FormField,
+  FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
@@ -12,56 +14,105 @@ import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+import Link from "next/link";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { loginSchema } from "@/interface/form";
 
 export default function Login() {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const router = useRouter();
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+  const mutation = useMutation({
+    mutationFn: (values: z.infer<typeof loginSchema>) =>
+      fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      }),
+  });
+
+  async function onSubmit(values: z.infer<typeof loginSchema>) {
+    try {
+      const res = await mutation.mutateAsync(values);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      toast.success("Login successful!");
+      router.push("/dashboard"); // Redirect to home or dashboard
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Invalid email or password"
+      );
+    }
   }
 
   return (
-    <div className="">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col h-screen items-center justify-center space-y-8 "
-        >
-          <h1 className="text-2xl font-bold">Login</h1>
-          <div className="">
-            <FormLabel htmlFor="email">Email: </FormLabel>
-            <FormControl>
-              <Input id="email" {...form.register("email")} />
-            </FormControl>
-            <FormMessage />
-          </div>
-          <div className="">
-            <FormLabel htmlFor="password">Password: </FormLabel>
-            <FormControl>
-              <Input
-                id="password"
-                {...form.register("password")}
-                type="password"
-              />
-            </FormControl>
-            <FormMessage />
-          </div>
-          <Button type="submit">Login</Button>
-        </form>
-      </Form>
+    <div className="flex h-screen items-center justify-center bg-gray-50/50">
+      <div className="w-full max-w-md space-y-8 rounded-lg border bg-white p-8 shadow-sm">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Enter your credentials to access your account
+          </p>
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="m@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+        </Form>
+        <div className="text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/sign-up"
+            className="text-primary underline underline-offset-4"
+          >
+            Sign up
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
