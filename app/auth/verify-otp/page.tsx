@@ -19,8 +19,9 @@ import { verifyOtpSchema } from "@/interface/form";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function VerifyOtp() {
+function VerifyOtpForm() {
   const searchParams = useSearchParams();
   const email = decodeURIComponent(searchParams.get("email") || "");
   const router = useRouter();
@@ -134,5 +135,13 @@ export default function VerifyOtp() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyOtp() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyOtpForm />
+    </Suspense>
   );
 }
