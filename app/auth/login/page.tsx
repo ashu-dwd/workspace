@@ -47,6 +47,7 @@ export default function Login() {
       if (!res.ok) {
         throw new Error(data.message || "Login failed");
       }
+      console.log("Login successful", data);
 
       toast.success("Login successful!");
       router.push("/dashboard"); // Redirect to home or dashboard

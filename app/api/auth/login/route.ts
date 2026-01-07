@@ -52,21 +52,46 @@ export async function POST(request: NextRequest) {
     }
 
     //  Generate token and return response
-    const token = generateToken(user);
+    const accessToken = generateToken(user, "1h");
+    const refreshToken = generateToken(user, "7d");
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Login successful",
         data: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          token,
+          token: {
+            accessToken,
+            refreshToken,
+          },
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+          },
         },
       },
       { status: 200 }
     );
+
+    // Set cookies
+    response.cookies.set("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60, // 1 hour
+      path: "/",
+    });
+
+    response.cookies.set("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

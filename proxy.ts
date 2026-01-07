@@ -5,14 +5,14 @@ import type { NextRequest } from "next/server";
 // runs before matching routes, enabling auth checks, redirects, etc.
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const accessToken = request.cookies.get("accessToken")?.value;
 
   // allowing API routes to pass through without modification
-  // this prevents breaking /api/* endpoints
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
-  // allowing static files and Next.js internals to pass through
+  // allowing static files to pass through
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -21,14 +21,21 @@ export default function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // TODO: Add your custom proxy logic here
-  // examples:
-  // - authentication checks
-  // - redirects based on user state
-  // - adding custom headers
-  // - rewriting URLs
+  // Public routes that should be accessible without authentication
+  const isAuthRoute = pathname.startsWith("/auth");
+  const isProtectedRoute =
+    pathname === "/" || pathname.startsWith("/dashboard");
 
-  // allowing the request to continue to the next handler
+  // If the user is on an auth route and has an access token, redirect to dashboard
+  if (isAuthRoute && accessToken) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // If the user is on a protected route and has no access token, redirect to login
+  if (isProtectedRoute && !accessToken) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
   return NextResponse.next();
 }
 
