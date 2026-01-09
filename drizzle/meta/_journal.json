@@ -29,6 +29,13 @@
       "when": 1767706808441,
       "tag": "0003_abandoned_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1767957146116,
+      "tag": "0004_abandoned_wallow",
+      "breakpoints": true
     }
   ]
 }
