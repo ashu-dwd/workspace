@@ -24,3 +24,17 @@ export const usersTable = pgTable("users", {
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
+
+export const notebooksTable = pgTable("notebooks", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer()
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  title: varchar({ length: 255 }).notNull(),
+  subtitle: varchar({ length: 255 }),
+  content: varchar({ length: 5000 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
