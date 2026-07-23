@@ -20,6 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Workspace",
   description: "a next gen note taking app",
+  icons: [{ rel: "icon", url: "/grid.png" }],
 };
 
 export default function RootLayout({

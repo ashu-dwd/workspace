@@ -36,6 +36,20 @@
       "when": 1767957146116,
       "tag": "0004_abandoned_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784783585190,
+      "tag": "0005_icy_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784785106853,
+      "tag": "0006_sad_sentinel",
+      "breakpoints": true
     }
   ]
 }

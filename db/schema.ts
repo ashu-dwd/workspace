@@ -5,6 +5,7 @@ import {
   timestamp,
   varchar,
   boolean,
+  text,
 } from "drizzle-orm/pg-core";
 
 // defining the role enum type first before using it in the table
@@ -13,6 +14,8 @@ export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   username: varchar({ length: 255 }).notNull().unique(),
+  displayName: varchar({ length: 255 }),
+  avatarUrl: text(),
   password: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
   role: roleEnum().default("user"),
@@ -32,7 +35,8 @@ export const notebooksTable = pgTable("notebooks", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   title: varchar({ length: 255 }).notNull(),
   subtitle: varchar({ length: 255 }),
-  content: varchar({ length: 5000 }).notNull(),
+  icon: varchar({ length: 10 }).default("📝"),
+  content: text().notNull().default(""),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

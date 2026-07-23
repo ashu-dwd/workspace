@@ -33,12 +33,7 @@ const items = [
     icon: Home,
   },
   {
-    title: "Create Notebook",
-    url: "/dashboard/create-notebook",
-    icon: BookMarked,
-  },
-  {
-    title: "Your Notebooks",
+    title: "Notebooks",
     url: "/dashboard/your-notebooks",
     icon: Notebook,
   },
@@ -61,8 +56,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
+        {/* Logo + branding */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b mb-2">
+          <img src="/grid.png" alt="Workspace" className="size-7" />
+          <span className="font-semibold text-base">Workspace</span>
+        </div>
         <SidebarGroup>
-          <SidebarGroupLabel>WorkSpace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
