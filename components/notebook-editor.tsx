@@ -10,7 +10,9 @@ import {
   Edit3,
   Trash2,
   CircleArrowLeft,
+  CheckSquare,
 } from "lucide-react";
+import { toggleTodo } from "@/lib/todo-parser";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,13 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialized = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef(content);
+
+  // Keep ref in sync
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // ── Fetch notebook ─────────────────────────────────────────────────────────
 
@@ -133,6 +142,55 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     scheduleSave({ content: newContent });
   };
 
+  // ── Insert checkbox ────────────────────────────────────────────────────────
+
+  const insertCheckbox = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = content.substring(0, start);
+    const after = content.substring(end);
+    const newContent = before + "- [ ] " + after;
+    setContent(newContent);
+    scheduleSave({ content: newContent });
+
+    // Set cursor position after the inserted text
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const pos = start + 6;
+      textarea.selectionStart = textarea.selectionEnd = pos;
+    });
+  };
+
+  // ── Toggle checkbox in preview ─────────────────────────────────────────────
+
+  // Module-level counter used inside ReactMarkdown custom components
+  // Reset before each render so indices stay consistent
+  const checkboxIdxRef = useRef(0);
+
+  const toggleCheckbox = useCallback(
+    (targetIdx: number) => {
+      const currentContent = contentRef.current;
+      const lines = currentContent.split("\n");
+      let idx = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^- \[( |x)\]/);
+        if (match) {
+          if (idx === targetIdx) {
+            const newContent = toggleTodo(currentContent, i);
+            setContent(newContent);
+            scheduleSave({ content: newContent });
+            return;
+          }
+          idx++;
+        }
+      }
+    },
+    [scheduleSave]
+  );
+
   // ── Delete ─────────────────────────────────────────────────────────────────
 
   const deleteMutation = useMutation({
@@ -178,6 +236,9 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Reset checkbox index for this render
+  checkboxIdxRef.current = 0;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
@@ -192,6 +253,18 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
           </button>
         )}
         <span className="text-lg leading-none">{notebook.icon || "📝"}</span>
+
+        {/* Todo button — only show in edit mode */}
+        {!preview && (
+          <button
+            onClick={insertCheckbox}
+            className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer"
+            title="Insert checkbox"
+          >
+            <CheckSquare className="size-4" />
+          </button>
+        )}
+
         <span className="text-xs text-muted-foreground ml-auto flex items-center gap-2">
           {saving && (
             <span className="flex items-center gap-1">
@@ -262,12 +335,32 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
           <div className="flex-1 overflow-y-auto">
             {preview ? (
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    input: (props) => {
+                      if (props.type === "checkbox") {
+                        const idx = checkboxIdxRef.current;
+                        checkboxIdxRef.current++;
+                        return (
+                          <input
+                            type="checkbox"
+                            checked={props.checked ?? false}
+                            onChange={() => toggleCheckbox(idx)}
+                            className="cursor-pointer"
+                          />
+                        );
+                      }
+                      return <input {...props} />;
+                    },
+                  }}
+                >
                   {content || "*No content yet*"}
                 </ReactMarkdown>
               </div>
             ) : (
               <textarea
+                ref={textareaRef}
                 value={content}
                 onChange={handleContentChange}
                 placeholder="Start writing in markdown..."

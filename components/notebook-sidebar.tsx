@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Notebook, Search, Plus, LoaderCircleIcon } from "lucide-react";
+import { Notebook, Search, Plus, LoaderCircleIcon, CheckSquare } from "lucide-react";
+import { summarizeTodos } from "@/lib/todo-parser";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ interface NotebookListItem {
   id: number;
   title: string;
   icon: string | null;
+  content: string;
   updatedAt: string | null;
 }
 
@@ -120,27 +122,36 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
             {search ? "No matches" : "No notebooks yet"}
           </p>
         ) : (
-          filtered.map((nb) => (
-            <button
-              key={nb.id}
-              onClick={() => onSelect(nb.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 cursor-pointer ${
-                selectedId === nb.id
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-muted"
-              }`}
-            >
-              <span className="flex-shrink-0 text-base leading-none">
-                {nb.icon || "📝"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{nb.title}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {relativeTime(nb.updatedAt)}
-                </p>
-              </div>
-            </button>
-          ))
+          filtered.map((nb) => {
+            const todoSummary = summarizeTodos(nb.content);
+            return (
+              <button
+                key={nb.id}
+                onClick={() => onSelect(nb.id)}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 cursor-pointer ${
+                  selectedId === nb.id
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-muted"
+                }`}
+              >
+                <span className="flex-shrink-0 text-base leading-none">
+                  {nb.icon || "📝"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{nb.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {relativeTime(nb.updatedAt)}
+                  </p>
+                </div>
+                {todoSummary.total > 0 && (
+                  <span className="flex-shrink-0 flex items-center gap-1 text-xs text-muted-foreground/60">
+                    <CheckSquare className="size-3" />
+                    {todoSummary.done}/{todoSummary.total}
+                  </span>
+                )}
+              </button>
+            );
+          })
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@ import {
   Activity,
   BookMarked,
   Calendar,
+  CheckSquare,
   Home,
   Inbox,
   Notebook,
@@ -36,6 +37,11 @@ const items = [
     title: "Notebooks",
     url: "/dashboard/your-notebooks",
     icon: Notebook,
+  },
+  {
+    title: "Tasks",
+    url: "/dashboard/todos",
+    icon: CheckSquare,
   },
   {
     title: "Your Activity",

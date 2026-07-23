@@ -25,31 +25,41 @@ AI features are deferred to a later spec.
 ┌─────────────────────────────────────┐
 │  [Logo]                    [Sign In] │  ← thin nav bar
 ├─────────────────────────────────────┤
+│          your thoughts,             │  ← hero headline
+│          uncluttered.               │
 │                                     │
-│         your thoughts,              │  ← hero headline
-│         uncluttered.                │
-│                                     │
-│   A fast, beautiful notebook that   │  ← subtext
-│   gets out of your way.             │
-│                                     │
-│   [Start Writing]  [See Features▾]  │  ← CTAs
+│  [Start Writing]  [See Features▾]   │  ← CTAs
 │                                     │
 ├─────────────────────────────────────┤
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐│
+│  │1,000+│ │5,000+│ │250K+ │ │500+  ││  ← stats counter
+│  │Note  │ │Tasks │ │Words │ │Users ││     4 stat cards
+│  └──────┘ └──────┘ └──────┘ └──────┘│
+│                                     │
+├─────────────────────────────────────┤
+│       See it in action              │
 │    ┌───────────────────────┐        │
-│    │  Editor Mockup        │        │  ← showcase screenshot
-│    │  (markdown + preview) │        │     (static image)
-│    │                       │        │
+│    │   /activity.png       │        │  ← showcase screenshot
+│    │   (dashboard)         │        │     (actual app screenshot)
 │    └───────────────────────┘        │
 │                                     │
 ├─────────────────────────────────────┤
-│  ┌───┐  ┌───┐  ┌───┐              │
-│  │ 📝│  │ 💾│  │ 🌙│              │  ← feature strip
-│  │Mark│  │Auto│  │Dark│              │     3 icons + 1-liners
-│  │down│  │Save│  │Mode│              │
-│  └───┘  └───┘  └───┘              │
+│ Everything you need, nothing you    │
+│              don't                  │  ← feature grid
+│  ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐   │     6 features in 3-col grid
+│  │ 📝│ │ 💾│ │ 🌙│ │ ✅│ │ 🔍│ │
+│  └───┘ └───┘ └───┘ └───┘ └───┘   │
 │                                     │
 ├─────────────────────────────────────┤
-│   © WorkSpace                       │  ← footer
+│  "Finally a note-taking app..."     │  ← testimonials
+│  "The todo+notes combo is genius."  │     2 cards side-by-side
+│                                     │
+├─────────────────────────────────────┤
+│      Ready to write?                │  ← bottom CTA
+│  [Start Writing →]                  │
+│                                     │
+├─────────────────────────────────────┤
+│ © WorkSpace     Sign In  Sign Up    │  ← footer w/ links
 └─────────────────────────────────────┘
 ```
 
@@ -71,25 +81,45 @@ AI features are deferred to a later spec.
 
 ### Showcase Section
 
-- Large screenshot/mockup of the notebook editor showing markdown on left, rendered preview on right
-- The sidebar visible with a file tree
-- Single centered image, max-w-2xl, subtle border radius
-- Static for now — no interactive demo
+- Large screenshot of the app's activity dashboard (`/activity.png`)
+- Shows real UI — charts, stats, notebook list
+- Single centered image, max-w-5xl container, rounded-xl border + shadow
+- `w-full h-auto` to scale responsively
 
-### Feature Strip
+### Feature Grid
 
-Three horizontal items in a row (responsive → column on mobile):
+Six feature cards in a 3-column grid (2-col on tablet, 1-col on mobile). Each card has rounded-xl border, emoji icon, title, description, hover shadow:
 
 | Icon | Title | Description |
 |------|-------|-------------|
-| 📝 | Markdown | Write in markdown, see it live. |
-| 💾 | Auto-Save | Every change saved instantly. |
-| 🌙 | Dark Mode | Easy on the eyes, day or night. |
+| 📝 | Markdown | Write in markdown, see it live with instant preview. |
+| 💾 | Auto-Save | Every change saved instantly — never lose a thought. |
+| 🌙 | Dark Mode | Easy on the eyes, day or night. Flips with one click. |
+| ✅ | Task Lists | Checkboxes in your notes. Track todos across notebooks. |
+| 🔍 | Full-Text Search | Find any note instantly — title, content, and more. |
+| 📊 | Activity Dashboard | See your writing streaks, stats, and notebook activity. |
+
+### Stats Counter
+
+- 4 stat cards in a row (2-col on mobile): Notebooks Created, Tasks Checked, Words Written, Active Users
+- Amber-500 for values, muted-foreground for labels
+- Hardcoded placeholder stats for now
+
+### Testimonials
+
+- 2 quote cards side-by-side on desktop, stacked on mobile
+- Italic quote text, name + title attribution below
+- Clean border cards, no avatars
+
+### Bottom CTA
+
+- "Ready to write?" heading + subtext + primary "Start Writing →" button
+- Last section before footer
 
 ### Footer
 
 - "© WorkSpace" (copyright current year dynamically)
-- GitHub link? Optional — only if relevant
+- Sign In / Sign Up links on the right
 
 ### Responsive Behavior
 

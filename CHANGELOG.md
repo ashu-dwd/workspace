@@ -1,5 +1,8 @@
 ## RECENT CHANGES
 
+2025-07-23 — landing page: clean & minimal hero+stats+showcase+features+testimonials+cta+footer, /activity.png screenshot, 4 new sections
+2025-07-23 — todo manager: lib/todo-parser, editor checkbox insert+toggle, sidebar todo summary, /api/todos endpoint, /dashboard/todos aggregate view, sidebar nav link
+
 2025-07-23 — settings page: profile edit (username, displayName, base64 PFP upload), theme toggle (next-themes), password change, account info + schema: displayName+avatarUrl cols + migration 0006 + GET/PATCH /api/user
 2025-07-23 — add favicon + sidebar logo (grid.png), brand header in sidebar
 2025-07-23 — activity page: recharts bar/area charts, content stats (chars/avg/longest), streak detection, most active day + deps (recharts)
