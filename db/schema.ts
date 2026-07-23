@@ -21,7 +21,9 @@ export const usersTable = pgTable("users", {
   role: roleEnum().default("user"),
   otp: varchar({ length: 6 }),
   otpExpiresAt: timestamp("otp_expires_at"),
+  openrouterApiKey: varchar("openrouter_api_key", { length: 255 }),
   isVerified: boolean().default(false),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

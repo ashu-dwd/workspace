@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         displayName: usersTable.displayName,
         email: usersTable.email,
         avatarUrl: usersTable.avatarUrl,
+        openrouterApiKey: usersTable.openrouterApiKey,
         role: usersTable.role,
         isVerified: usersTable.isVerified,
         createdAt: usersTable.createdAt,
@@ -70,7 +71,7 @@ export async function PATCH(request: NextRequest) {
     const updates: Record<string, unknown> = {};
 
     // ── Profile fields ───────────────────────────────────────────────────────
-    if (body.username !== undefined || body.displayName !== undefined || body.avatarUrl !== undefined) {
+    if (body.username !== undefined || body.displayName !== undefined || body.avatarUrl !== undefined || body.openrouterApiKey !== undefined) {
       const profileValidation = updateProfileSchema.safeParse(body);
       if (!profileValidation.success) {
         return NextResponse.json(
@@ -99,6 +100,9 @@ export async function PATCH(request: NextRequest) {
       }
       if (profileValidation.data.avatarUrl !== undefined) {
         updates.avatarUrl = profileValidation.data.avatarUrl;
+      }
+      if (profileValidation.data.openrouterApiKey !== undefined) {
+        updates.openrouterApiKey = profileValidation.data.openrouterApiKey;
       }
     }
 

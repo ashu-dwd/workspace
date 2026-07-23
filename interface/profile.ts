@@ -8,6 +8,7 @@ export const updateProfileSchema = z.object({
     .optional(),
   displayName: z.string().max(255).optional(),
   avatarUrl: z.string().max(50000).optional(),
+  openrouterApiKey: z.string().max(255).optional(),
 });
 
 export const changePasswordSchema = z

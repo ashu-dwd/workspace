@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Notebook, Search, Plus, LoaderCircleIcon, CheckSquare } from "lucide-react";
+import { Notebook, Search, Plus, LoaderCircleIcon, CheckSquare, Sparkles } from "lucide-react";
 import { summarizeTodos } from "@/lib/todo-parser";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -45,6 +45,10 @@ function relativeTime(date: string | null): string {
 export default function NotebookSidebar({ selectedId, onSelect }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [aiSearch, setAiSearch] = useState(false);
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data, isLoading } = useQuery<{ data: NotebookListItem[] }>({
     queryKey: ["notebooks"],
@@ -71,6 +75,60 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
     },
   });
 
+  // ── AI search ───────────────────────────────────────────────────────────────
+
+  const handleAiSearch = async (query: string) => {
+    const allNotebooks = data?.data ?? [];
+    if (allNotebooks.length === 0) {
+      setAiAnswer("No notebooks to search.");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiAnswer(null);
+
+    try {
+      const userRes = await fetch("/api/user");
+      const userData = await userRes.json();
+      const apiKey = userData.data?.openrouterApiKey;
+
+      if (!apiKey) {
+        setAiAnswer("No API key configured. Add one in Settings.");
+        setAiLoading(false);
+        return;
+      }
+
+      const res = await fetch("/api/ai/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          query,
+          notebooks: allNotebooks.map((nb) => ({
+            id: nb.id,
+            title: nb.title,
+            content: nb.content,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        setAiAnswer("Failed to search. Try again later.");
+        setAiLoading(false);
+        return;
+      }
+
+      const result = await res.json();
+      setAiAnswer(result.data.answer);
+    } catch {
+      setAiAnswer("Search failed. Check your connection.");
+    }
+
+    setAiLoading(false);
+  };
+
   const notebooks = data?.data ?? [];
   const filtered = search
     ? notebooks.filter((n) =>
@@ -81,7 +139,7 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
   return (
     <div className="w-64 border-r flex flex-col h-full bg-muted/20">
       {/* Header */}
-      <div className="p-3 border-b">
+      <div className="p-3 border-b relative">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-muted-foreground">
             Notebooks
@@ -99,17 +157,56 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
             )}
           </button>
         </div>
-        <div className="relative">
-          <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-8 pl-8 pr-3 text-sm rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-          />
+        <div className="flex gap-1">
+          <div className="relative flex-1">
+            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearch(val);
+
+                if (aiSearch && val.trim()) {
+                  if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+                  aiDebounceRef.current = setTimeout(() => {
+                    handleAiSearch(val);
+                  }, 300);
+                }
+                if (!val.trim()) setAiAnswer(null);
+              }}
+              className="w-full h-8 pl-8 pr-3 text-sm rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <button
+            onClick={() => setAiSearch(!aiSearch)}
+            className={`size-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+              aiSearch ? "bg-accent text-accent-foreground" : "hover:bg-muted text-muted-foreground"
+            }`}
+            title="AI Search"
+          >
+            <Sparkles className="size-4" />
+          </button>
         </div>
       </div>
+
+      {/* AI answer dropdown */}
+      {aiSearch && (aiAnswer || aiLoading) && (
+        <div className="absolute left-3 right-3 top-full mt-1 z-20 bg-background border rounded-lg shadow-lg p-3 text-sm">
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <LoaderCircleIcon className="size-3 animate-spin" />
+              Searching...
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">AI Answer</p>
+              <p className="text-foreground text-xs leading-relaxed">{aiAnswer}</p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">

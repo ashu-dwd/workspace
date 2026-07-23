@@ -11,8 +11,10 @@ import {
   Trash2,
   CircleArrowLeft,
   CheckSquare,
+  Sparkles,
 } from "lucide-react";
 import { toggleTodo } from "@/lib/todo-parser";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,9 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [ghostText, setGhostText] = useState("");
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialized = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +82,15 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     queryFn: async () => {
       const res = await fetch(`/api/notebooks/${notebookId}`);
       if (!res.ok) throw new Error("Failed to load notebook");
+      return res.json();
+    },
+  });
+
+  const { data: userData } = useQuery<{ data: { openrouterApiKey: string | null } }>({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const res = await fetch("/api/user");
+      if (!res.ok) throw new Error("Failed to load user");
       return res.json();
     },
   });
@@ -139,7 +153,26 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setContent(newContent);
+    setGhostText("");
     scheduleSave({ content: newContent });
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      triggerAutocomplete(newContent);
+    }, 500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab" && ghostText) {
+      e.preventDefault();
+      const newContent = content + ghostText;
+      setContent(newContent);
+      setGhostText("");
+      scheduleSave({ content: newContent });
+    }
+    if (e.key === "Escape" && ghostText) {
+      setGhostText("");
+    }
   };
 
   // ── Insert checkbox ────────────────────────────────────────────────────────
@@ -190,6 +223,97 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     },
     [scheduleSave]
   );
+
+  // ── Polish ─────────────────────────────────────────────────────────────────
+
+  const polishMutation = useMutation({
+    mutationFn: async () => {
+      const apiKey = userData?.data?.openrouterApiKey;
+      if (!apiKey) {
+        throw new Error("No API key configured. Add one in Settings.");
+      }
+
+      const res = await fetch("/api/ai/polish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error("Failed to polish note");
+      return res.json();
+    },
+    onSuccess: (result) => {
+      const polished = result.data.polished;
+      if (window.confirm("Accept polished version?")) {
+        setContent(polished);
+        scheduleSave({ content: polished });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // ── Autocomplete ───────────────────────────────────────────────────────────
+
+  const triggerAutocomplete = useCallback((text: string) => {
+    if (abortRef.current) abortRef.current.abort();
+    if (text.length < 10) { setGhostText(""); return; }
+
+    const apiKey = userData?.data?.openrouterApiKey;
+    if (!apiKey) return;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    fetch("/api/ai/complete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ context: text }),
+      signal: controller.signal,
+    }).then(async (res) => {
+      const reader = res.body?.getReader();
+      if (!reader) return;
+
+      let buffer = "";
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") return;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.token) {
+                setGhostText((prev) => prev + parsed.token);
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
+    }).catch(() => {});
+  }, [userData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
@@ -262,6 +386,18 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
             title="Insert checkbox"
           >
             <CheckSquare className="size-4" />
+          </button>
+        )}
+
+        {/* Polish button — only show in edit mode */}
+        {!preview && (
+          <button
+            onClick={() => polishMutation.mutate()}
+            disabled={polishMutation.isPending}
+            className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
+            title="Polish note"
+          >
+            <Sparkles className="size-4" />
           </button>
         )}
 
@@ -359,13 +495,22 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
                 </ReactMarkdown>
               </div>
             ) : (
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={handleContentChange}
-                placeholder="Start writing in markdown..."
-                className="w-full min-h-full bg-transparent border-none outline-none resize-none leading-relaxed placeholder:text-muted-foreground/30 font-mono text-sm"
-              />
+              <>
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={handleContentChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Start writing in markdown..."
+                  className="w-full min-h-full bg-transparent border-none outline-none resize-none leading-relaxed placeholder:text-muted-foreground/30 font-mono text-sm"
+                />
+                {ghostText && (
+                  <div className="text-sm text-muted-foreground/40 italic mt-1">
+                    {ghostText}
+                    <span className="text-xs ml-2 text-muted-foreground/30">Tab to accept</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

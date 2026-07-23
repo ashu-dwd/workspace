@@ -22,6 +22,7 @@ interface UserData {
   displayName: string | null;
   email: string;
   avatarUrl: string | null;
+  openrouterApiKey: string | null;
   role: string;
   isVerified: boolean;
   createdAt: string | null;
@@ -136,6 +137,42 @@ export default function SettingsPage() {
       setDirty(true);
     };
     reader.readAsDataURL(file);
+  };
+
+  // ── API key state ───────────────────────────────────────────────────────────
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+
+  // Sync API key from user data
+  useEffect(() => {
+    if (user?.openrouterApiKey) {
+      setApiKey(user.openrouterApiKey);
+    }
+  }, [user]);
+
+  // ── Save API key ────────────────────────────────────────────────────────────
+  const apiKeyMutation = useMutation({
+    mutationFn: async (key: string) => {
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openrouterApiKey: key || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to save API key");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setApiKeySaved(true);
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      setTimeout(() => setApiKeySaved(false), 2000);
+    },
+  });
+
+  const handleSaveApiKey = () => {
+    apiKeyMutation.mutate(apiKey);
   };
 
   // ── Password change ────────────────────────────────────────────────────────
@@ -394,6 +431,54 @@ export default function SettingsPage() {
               : "Failed to change password"}
           </p>
         )}
+      </Section>
+
+      {/* ── AI ──────────────────────────────────────────────────────────── */}
+      <Section title="AI">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            OpenRouter API Key
+          </label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => {
+              setApiKey(e.target.value);
+              setApiKeySaved(false);
+            }}
+            placeholder="sk-or-..."
+            className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Used for AI features like polish, smart search, and autocomplete. Get a free key at openrouter.ai/keys
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSaveApiKey}
+            disabled={apiKeyMutation.isPending}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {apiKeyMutation.isPending ? (
+              <LoaderCircleIcon className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            Save API Key
+          </button>
+          {apiKeySaved && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1">
+              <Check className="size-3" /> Saved
+            </span>
+          )}
+          {apiKeyMutation.isError && (
+            <span className="text-xs text-destructive">
+              {apiKeyMutation.error instanceof Error
+                ? apiKeyMutation.error.message
+                : "Failed to save"}
+            </span>
+          )}
+        </div>
       </Section>
 
       {/* ── Account info ────────────────────────────────────────────────── */}
