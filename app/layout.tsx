@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Provider } from "react-redux";
+import { store } from "./redux-toolkit/store";
+import ClientApp from "./client-app";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Workspace",
   description: "a next gen note taking app",
+  icons: [{ rel: "icon", url: "/grid.png" }],
 };
 
 export default function RootLayout({
@@ -29,9 +33,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>{children}</QueryProvider>
-        <Toaster />
+        <ClientApp>{children}</ClientApp>
       </body>
     </html>
+    //okk thanks
   );
 }

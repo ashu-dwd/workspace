@@ -47,13 +47,20 @@ export default function SignUp() {
     try {
       // console.log(values);
       const res = await mutation.mutateAsync(values);
+      const data = await res.json();
       if (!res.ok) {
-        const data = (await res.json()) as { message: string };
         throw new Error(data.message || "Sign up failed");
       }
       // form.reset();
-      toast.info("Please verify your email using the OTP sent to you.");
-      router.push("/auth/verify-otp?email=" + encodeURIComponent(values.email));
+      if (data.data?.token) {
+        // Dev: auto-verified, go straight to dashboard
+        toast.success("Account created successfully!");
+        router.push("/dashboard");
+      } else {
+        // Production: verify via email OTP
+        toast.info("Please verify your email using the OTP sent to you.");
+        router.push("/auth/verify-otp?email=" + encodeURIComponent(values.email));
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to create an account"

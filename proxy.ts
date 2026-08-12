@@ -23,8 +23,7 @@ export default function proxy(request: NextRequest) {
 
   // Public routes that should be accessible without authentication
   const isAuthRoute = pathname.startsWith("/auth");
-  const isProtectedRoute =
-    pathname === "/" || pathname.startsWith("/dashboard");
+  const isProtectedRoute = pathname.startsWith("/dashboard");
 
   // If the user is on an auth route and has an access token, redirect to dashboard
   if (isAuthRoute && accessToken) {
