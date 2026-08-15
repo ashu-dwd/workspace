@@ -491,23 +491,24 @@ export default function NotebookEditor({
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  components={{
-                    input: (props) => {
-                      if (props.type === "checkbox") {
-                        const idx = checkboxIdxRef.current;
-                        checkboxIdxRef.current++;
-                        return (
-                          <input
-                            type="checkbox"
-                            checked={props.checked ?? false}
-                            onChange={() => toggleCheckbox(idx)}
-                            className="cursor-pointer"
-                          />
-                        );
-                      }
-                      return <input {...props} />;
-                    },
-                  }}
+components={{
+                      input: (props) => {
+                        if (props.type === "checkbox") {
+                          const idx = checkboxIdxRef.current;
+                          checkboxIdxRef.current++;
+                          return (
+                            <input
+                              type="checkbox"
+                              checked={props.checked ?? false}
+                              onChange={() => toggleCheckbox(idx)}
+                              className="cursor-pointer"
+                            />
+                          );
+                        }
+                        const { ref, ...rest } = props;
+                        return <input {...rest} />;
+                      },
+                    }}
                 >
                   {content || "*No content yet*"}
                 </ReactMarkdown>

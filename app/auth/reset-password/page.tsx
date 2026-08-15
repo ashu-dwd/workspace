@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import {
   Form,
   FormControl,
@@ -21,7 +22,7 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export default function ResetPassword() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParamsData = useSearchParams();
   const token = searchParamsData.get("token") as string;
@@ -98,5 +99,13 @@ export default function ResetPassword() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
