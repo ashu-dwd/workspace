@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 
-// ─── Auth helpers ────────────────────────────────────────────────────────────
+//  Auth helpers
 
 function getUserId(request: NextRequest): number | null {
   const token = request.cookies.get("accessToken")?.value;
@@ -20,7 +20,7 @@ function getApiKey(request: NextRequest): string | null {
   return auth.slice(7);
 }
 
-// ─── POST /api/ai/complete — SSE streaming ─────────────────────────────────
+//  POST /api/ai/complete — SSE streaming
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { message: "API key is required in Authorization header" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (!context || typeof context !== "string") {
       return NextResponse.json(
         { message: "context is required and must be a string" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           ],
           stream: true,
         }),
-      }
+      },
     );
 
     if (!openrouterResponse.ok) {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
             errorText ? ` — ${errorText}` : ""
           }`,
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (!reader) {
       return NextResponse.json(
         { message: "Failed to get response stream" },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -121,8 +121,7 @@ export async function POST(request: NextRequest) {
               if (trimmed.startsWith("data: ")) {
                 try {
                   const parsed = JSON.parse(trimmed.slice(6));
-                  const token =
-                    parsed?.choices?.[0]?.delta?.content ?? "";
+                  const token = parsed?.choices?.[0]?.delta?.content ?? "";
                   if (token) {
                     const payload = `data: ${JSON.stringify({ token })}\n\n`;
                     controller.enqueue(encoder.encode(payload));

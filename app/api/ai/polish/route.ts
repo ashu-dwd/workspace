@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { callOpenRouterNonStreaming } from "@/lib/ai";
 
-// ─── Auth helpers ────────────────────────────────────────────────────────────
+//  Auth helpers
 
 function getUserId(request: NextRequest): number | null {
   const token = request.cookies.get("accessToken")?.value;
@@ -21,7 +21,7 @@ function getApiKey(request: NextRequest): string | null {
   return auth.slice(7);
 }
 
-// ─── POST /api/ai/polish ─────────────────────────────────────────────────────
+// POST /api/ai/polish
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { message: "API key is required in Authorization header" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!content || typeof content !== "string") {
       return NextResponse.json(
         { message: "content is required and must be a string" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

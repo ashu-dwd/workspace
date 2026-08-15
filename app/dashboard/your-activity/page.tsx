@@ -25,7 +25,7 @@ import {
   Area,
 } from "recharts";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types
 
 interface NotebookItem {
   id: number;
@@ -186,16 +186,14 @@ export default function YourActivityPage() {
 
   const totalContentChars = notebooks.reduce(
     (acc, n) => acc + (n.content?.length || 0),
-    0
+    0,
   );
   const avgContentLen =
-    notebooks.length > 0
-      ? Math.round(totalContentChars / notebooks.length)
-      : 0;
+    notebooks.length > 0 ? Math.round(totalContentChars / notebooks.length) : 0;
   const longestTitle =
     notebooks.length > 0
       ? notebooks.reduce((prev, n) =>
-          (n.title?.length || 0) > (prev.title?.length || 0) ? n : prev
+          (n.title?.length || 0) > (prev.title?.length || 0) ? n : prev,
         ).title
       : "—";
 
@@ -204,7 +202,11 @@ export default function YourActivityPage() {
   const last7Days: { day: string; Created: number; Edited: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now - i * 24 * 60 * 60 * 1000);
-    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayStart = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+    ).getTime();
     const dayEnd = dayStart + 24 * 60 * 60 * 1000;
 
     const created = notebooks.filter((n) => {
@@ -229,7 +231,9 @@ export default function YourActivityPage() {
   const last30Days: { date: string; Total: number }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now - i * 24 * 60 * 60 * 1000);
-    const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() + 24 * 60 * 60 * 1000;
+    const dayEnd =
+      new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() +
+      24 * 60 * 60 * 1000;
 
     const total = notebooks.filter((n) => {
       const t = n.createdAt ? new Date(n.createdAt).getTime() : 0;
@@ -249,15 +253,11 @@ export default function YourActivityPage() {
   notebooks.forEach((n) => {
     if (n.createdAt) {
       const d = new Date(n.createdAt);
-      allActivityDates.add(
-        `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      );
+      allActivityDates.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
     }
     if (n.updatedAt) {
       const d = new Date(n.updatedAt);
-      allActivityDates.add(
-        `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      );
+      allActivityDates.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
     }
   });
 
@@ -315,8 +315,9 @@ export default function YourActivityPage() {
     if (
       n.updatedAt &&
       n.createdAt &&
-      Math.abs(new Date(n.updatedAt).getTime() - new Date(n.createdAt).getTime()) >
-        60000
+      Math.abs(
+        new Date(n.updatedAt).getTime() - new Date(n.createdAt).getTime(),
+      ) > 60000
     ) {
       events.push({
         type: "updated",
@@ -330,7 +331,7 @@ export default function YourActivityPage() {
   });
 
   events.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 
   const grouped: { date: string; events: ActivityEvent[] }[] = [];
@@ -349,7 +350,7 @@ export default function YourActivityPage() {
     .sort(
       (a, b) =>
         new Date(b.updatedAt ?? 0).getTime() -
-        new Date(a.updatedAt ?? 0).getTime()
+        new Date(a.updatedAt ?? 0).getTime(),
     )
     .slice(0, 6);
 
@@ -454,7 +455,10 @@ export default function YourActivityPage() {
           </h2>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={last7Days} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="day"
                 tick={{ fontSize: 11 }}
@@ -488,7 +492,10 @@ export default function YourActivityPage() {
           </h2>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={last30Days}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 11 }}
@@ -577,9 +584,7 @@ export default function YourActivityPage() {
                     {nb.icon || "📝"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">
-                      {nb.title}
-                    </p>
+                    <p className="text-sm font-medium truncate">{nb.title}</p>
                     {nb.subtitle && (
                       <p className="text-xs text-muted-foreground truncate">
                         {nb.subtitle}

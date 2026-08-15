@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toggleTodo, parseTodos } from "@/lib/todo-parser";
 import { useRouter } from "next/navigation";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 interface TodoItemData {
   notebookId: number;
@@ -23,7 +23,7 @@ interface GroupedTodos {
   };
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+//  Component
 
 export default function TodosPage() {
   const queryClient = useQueryClient();
@@ -43,7 +43,7 @@ export default function TodosPage() {
     },
   });
 
-  // ── Toggle todo ────────────────────────────────────────────────────────────
+  // ── Toggle todo
 
   const toggleMutation = useMutation({
     mutationFn: async ({
@@ -78,7 +78,7 @@ export default function TodosPage() {
     },
   });
 
-  // ── Group todos by notebook ────────────────────────────────────────────────
+  // ── Group todos by notebook
 
   const rawTodos = data?.data ?? [];
   const uncheckedTodos = rawTodos.filter((t) => !t.checked);
@@ -99,7 +99,7 @@ export default function TodosPage() {
   const uncheckedGrouped = groupByNotebook(uncheckedTodos);
   const checkedGrouped = groupByNotebook(checkedTodos);
 
-  // ── States ─────────────────────────────────────────────────────────────────
+  // ── States ──
 
   if (isLoading) {
     return (
@@ -171,9 +171,7 @@ export default function TodosPage() {
             <div key={notebookId} className="mb-6">
               <button
                 onClick={() =>
-                  router.push(
-                    `/dashboard/your-notebooks?noteId=${notebookId}`
-                  )
+                  router.push(`/dashboard/your-notebooks?noteId=${notebookId}`)
                 }
                 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2 cursor-pointer"
               >
@@ -218,7 +216,7 @@ export default function TodosPage() {
                 <button
                   onClick={() =>
                     router.push(
-                      `/dashboard/your-notebooks?noteId=${notebookId}`
+                      `/dashboard/your-notebooks?noteId=${notebookId}`,
                     )
                   }
                   className="flex items-center gap-2 text-xs font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors mb-1 cursor-pointer"

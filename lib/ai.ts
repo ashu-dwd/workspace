@@ -44,7 +44,7 @@ export async function callOpenRouter(params: {
  */
 export async function callOpenRouterNonStreaming(
   apiKey: string,
-  messages: Message[]
+  messages: Message[],
 ): Promise<string> {
   const response = await callOpenRouter({ apiKey, messages, stream: false });
 
@@ -53,7 +53,7 @@ export async function callOpenRouterNonStreaming(
     throw new Error(
       `OpenRouter API error: ${response.status} ${response.statusText}${
         body ? ` — ${body}` : ""
-      }`
+      }`,
     );
   }
 
@@ -63,6 +63,6 @@ export async function callOpenRouterNonStreaming(
   if (typeof content !== "string") {
     throw new Error("OpenRouter returned an unexpected response format");
   }
-
+  console.log("Polished content:", content);
   return content;
 }

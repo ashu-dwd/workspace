@@ -13,8 +13,9 @@ import {
   LoaderCircleIcon,
   Check,
 } from "lucide-react";
+import { toast } from "sonner";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 interface UserData {
   id: number;
@@ -28,7 +29,7 @@ interface UserData {
   createdAt: string | null;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+//  Helpers ──
 
 function formatDate(date: string | null): string {
   if (!date) return "—";
@@ -43,7 +44,7 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-// ─── Section wrapper ─────────────────────────────────────────────────────────
+//  Section wrapper
 
 function Section({
   title,
@@ -62,14 +63,14 @@ function Section({
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+//  Main page
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Fetch user ─────────────────────────────────────────────────────────────
+  // ── Fetch user ─
   const { data, isLoading } = useQuery<{ data: UserData }>({
     queryKey: ["user"],
     queryFn: async () => {
@@ -81,7 +82,7 @@ export default function SettingsPage() {
 
   const user = data?.data;
 
-  // ── Local form state ───────────────────────────────────────────────────────
+  // ── Local form state ─
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -96,7 +97,7 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  // ── Save profile ───────────────────────────────────────────────────────────
+  // ── Save profile ──
   const saveMutation = useMutation({
     mutationFn: async (updates: Record<string, unknown>) => {
       const res = await fetch("/api/user", {
@@ -125,9 +126,10 @@ export default function SettingsPage() {
     if (avatarPreview !== user?.avatarUrl) updates.avatarUrl = avatarPreview;
     if (Object.keys(updates).length === 0) return;
     saveMutation.mutate(updates);
+    toast.success(`${Object.keys(updates).length} changes saved`);
   };
 
-  // ── Avatar upload ──────────────────────────────────────────────────────────
+  // ── Avatar upload ─
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -139,7 +141,7 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  // ── API key state ───────────────────────────────────────────────────────────
+  // API key state
   const [apiKey, setApiKey] = useState("");
   const [apiKeySaved, setApiKeySaved] = useState(false);
 
@@ -150,7 +152,7 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  // ── Save API key ────────────────────────────────────────────────────────────
+  // ── Save API key
   const apiKeyMutation = useMutation({
     mutationFn: async (key: string) => {
       const res = await fetch("/api/user", {
@@ -167,6 +169,7 @@ export default function SettingsPage() {
     onSuccess: () => {
       setApiKeySaved(true);
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      toast.success("API key saved");
       setTimeout(() => setApiKeySaved(false), 2000);
     },
   });
@@ -175,7 +178,7 @@ export default function SettingsPage() {
     apiKeyMutation.mutate(apiKey);
   };
 
-  // ── Password change ────────────────────────────────────────────────────────
+  // ── Password change ──
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -203,7 +206,7 @@ export default function SettingsPage() {
     passwordMutation.mutate();
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // ── Loading ─
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -220,12 +223,12 @@ export default function SettingsPage() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ──
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      {/* ── Profile section ──────────────────────────────────────────────── */}
+      {/* ── Profile section  */}
       <Section title="Profile">
         {/* Avatar */}
         <div className="flex items-center gap-4">
@@ -342,7 +345,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Appearance ──────────────────────────────────────────────────── */}
+      {/* ── Appearance ─ */}
       <Section title="Appearance">
         <div className="flex items-center justify-between">
           <div>
@@ -378,7 +381,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Password ────────────────────────────────────────────────────── */}
+      {/* ── Password  */}
       <Section title="Password">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -433,7 +436,7 @@ export default function SettingsPage() {
         )}
       </Section>
 
-      {/* ── AI ──────────────────────────────────────────────────────────── */}
+      {/* ── AI  */}
       <Section title="AI">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -450,7 +453,8 @@ export default function SettingsPage() {
             className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <p className="text-xs text-muted-foreground mt-1.5">
-            Used for AI features like polish, smart search, and autocomplete. Get a free key at openrouter.ai/keys
+            Used for AI features like polish, smart search, and autocomplete.
+            Get a free key at openrouter.ai/keys
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -481,7 +485,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Account info ────────────────────────────────────────────────── */}
+      {/* ── Account info ── */}
       <Section title="Account">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
