@@ -6,7 +6,7 @@ import { Notebook } from "lucide-react";
 import NotebookSidebar from "@/components/notebook-sidebar";
 import NotebookEditor from "@/components/notebook-editor";
 
-// ─── Inner component (needs Suspense for useSearchParams) ────────────────────
+//  Inner component (needs Suspense for useSearchParams) ──
 
 function YourNotebooksContent() {
   const router = useRouter();
@@ -51,7 +51,7 @@ function YourNotebooksContent() {
   );
 }
 
-// ─── Page export ─────────────────────────────────────────────────────────────
+//  Page export ─
 
 export default function YourNotebooksPage() {
   return (

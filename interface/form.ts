@@ -19,3 +19,7 @@ export const verifyOtpSchema = z.object({
 export const resendOtpSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
+
+export interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}

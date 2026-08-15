@@ -1,5 +1,6 @@
 ## RECENT CHANGES
 
+2026-08-15 — fix: login redirect broken by `import { cookies }` (server-only API) in client login page; removed, verified login→cookie→/dashboard flow in browser
 2025-07-23 — landing page: clean & minimal hero+stats+showcase+features+testimonials+cta+footer, /activity.png screenshot, 4 new sections
 2025-07-23 — todo manager: lib/todo-parser, editor checkbox insert+toggle, sidebar todo summary, /api/todos endpoint, /dashboard/todos aggregate view, sidebar nav link
 

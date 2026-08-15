@@ -16,7 +16,7 @@ import {
 import { toggleTodo } from "@/lib/todo-parser";
 import { toast } from "sonner";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 interface NotebookData {
   id: number;
@@ -33,7 +33,7 @@ interface Props {
   onDelete?: (id: number) => void;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+//  Helpers ──
 
 function relativeTime(date: string | null): string {
   if (!date) return "";
@@ -53,9 +53,13 @@ function relativeTime(date: string | null): string {
   }
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+//  Component
 
-export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) {
+export default function NotebookEditor({
+  notebookId,
+  onBack,
+  onDelete,
+}: Props) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -75,7 +79,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     contentRef.current = content;
   }, [content]);
 
-  // ── Fetch notebook ─────────────────────────────────────────────────────────
+  // ── Fetch notebook
 
   const { data, isLoading, isError } = useQuery<{ data: NotebookData }>({
     queryKey: ["notebook", notebookId],
@@ -86,7 +90,9 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     },
   });
 
-  const { data: userData } = useQuery<{ data: { openrouterApiKey: string | null } }>({
+  const { data: userData } = useQuery<{
+    data: { openrouterApiKey: string | null };
+  }>({
     queryKey: ["user"],
     queryFn: async () => {
       const res = await fetch("/api/user");
@@ -104,7 +110,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     }
   }, [data]);
 
-  // ── Auto-save ──────────────────────────────────────────────────────────────
+  // ── Auto-save ──
 
   const saveMutation = useMutation({
     mutationFn: async (updates: Record<string, unknown>) => {
@@ -132,7 +138,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
         saveMutation.mutate(updates);
       }, 1500);
     },
-    [saveMutation]
+    [saveMutation],
   );
 
   // Cleanup timer on unmount
@@ -142,7 +148,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     };
   }, []);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  // ── Handlers
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -175,7 +181,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     }
   };
 
-  // ── Insert checkbox ────────────────────────────────────────────────────────
+  // ── Insert checkbox ──
 
   const insertCheckbox = () => {
     const textarea = textareaRef.current;
@@ -197,7 +203,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     });
   };
 
-  // ── Toggle checkbox in preview ─────────────────────────────────────────────
+  // ── Toggle checkbox in preview
 
   // Module-level counter used inside ReactMarkdown custom components
   // Reset before each render so indices stay consistent
@@ -221,10 +227,10 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
         }
       }
     },
-    [scheduleSave]
+    [scheduleSave],
   );
 
-  // ── Polish ─────────────────────────────────────────────────────────────────
+  // ── Polish ──
 
   const polishMutation = useMutation({
     mutationFn: async () => {
@@ -256,56 +262,66 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     },
   });
 
-  // ── Autocomplete ───────────────────────────────────────────────────────────
+  // ── Autocomplete ──
 
-  const triggerAutocomplete = useCallback((text: string) => {
-    if (abortRef.current) abortRef.current.abort();
-    if (text.length < 10) { setGhostText(""); return; }
-
-    const apiKey = userData?.data?.openrouterApiKey;
-    if (!apiKey) return;
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    fetch("/api/ai/complete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ context: text }),
-      signal: controller.signal,
-    }).then(async (res) => {
-      const reader = res.body?.getReader();
-      if (!reader) return;
-
-      let buffer = "";
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") return;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.token) {
-                setGhostText((prev) => prev + parsed.token);
-              }
-            } catch { /* skip malformed */ }
-          }
-        }
+  const triggerAutocomplete = useCallback(
+    (text: string) => {
+      if (abortRef.current) abortRef.current.abort();
+      if (text.length < 10) {
+        setGhostText("");
+        return;
       }
-    }).catch(() => {});
-  }, [userData]);
+
+      const apiKey = userData?.data?.openrouterApiKey;
+      if (!apiKey) return;
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      fetch("/api/ai/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ context: text }),
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          const reader = res.body?.getReader();
+          if (!reader) return;
+
+          let buffer = "";
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") return;
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.token) {
+                    setGhostText((prev) => prev + parsed.token);
+                  }
+                } catch {
+                  /* skip malformed */
+                }
+              }
+            }
+          }
+        })
+        .catch(() => {});
+    },
+    [userData],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -315,7 +331,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     };
   }, []);
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── Delete ──
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -330,7 +346,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
     },
   });
 
-  // ── States ─────────────────────────────────────────────────────────────────
+  // ── States ──
 
   if (isLoading) {
     return (
@@ -346,7 +362,9 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
         <p>Failed to load notebook</p>
         <button
           onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ["notebook", notebookId] })
+            queryClient.invalidateQueries({
+              queryKey: ["notebook", notebookId],
+            })
           }
           className="text-sm text-primary underline underline-offset-4 cursor-pointer"
         >
@@ -358,7 +376,7 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
 
   const notebook = data.data;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ──
 
   // Reset checkbox index for this render
   checkboxIdxRef.current = 0;
@@ -473,23 +491,24 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  components={{
-                    input: (props) => {
-                      if (props.type === "checkbox") {
-                        const idx = checkboxIdxRef.current;
-                        checkboxIdxRef.current++;
-                        return (
-                          <input
-                            type="checkbox"
-                            checked={props.checked ?? false}
-                            onChange={() => toggleCheckbox(idx)}
-                            className="cursor-pointer"
-                          />
-                        );
-                      }
-                      return <input {...props} />;
-                    },
-                  }}
+components={{
+                      input: (props) => {
+                        if (props.type === "checkbox") {
+                          const idx = checkboxIdxRef.current;
+                          checkboxIdxRef.current++;
+                          return (
+                            <input
+                              type="checkbox"
+                              checked={props.checked ?? false}
+                              onChange={() => toggleCheckbox(idx)}
+                              className="cursor-pointer"
+                            />
+                          );
+                        }
+                        const { ref, ...rest } = props;
+                        return <input {...rest} />;
+                      },
+                    }}
                 >
                   {content || "*No content yet*"}
                 </ReactMarkdown>
@@ -507,7 +526,9 @@ export default function NotebookEditor({ notebookId, onBack, onDelete }: Props) 
                 {ghostText && (
                   <div className="text-sm text-muted-foreground/40 italic mt-1">
                     {ghostText}
-                    <span className="text-xs ml-2 text-muted-foreground/30">Tab to accept</span>
+                    <span className="text-xs ml-2 text-muted-foreground/30">
+                      Tab to accept
+                    </span>
                   </div>
                 )}
               </>

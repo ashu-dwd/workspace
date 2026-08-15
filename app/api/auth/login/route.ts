@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { message: validation.error.issues[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (users.length === 0) {
       return NextResponse.json(
         { message: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -47,13 +47,19 @@ export async function POST(request: NextRequest) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     //  Generate token and return response
-    const accessToken = generateToken(user, "1h");
-    const refreshToken = generateToken(user, "7d");
+    const accessToken = generateToken(
+      { id: user.id, email: user.email, role: user.role },
+      "1h",
+    );
+    const refreshToken = generateToken(
+      { id: user.id, email: user.email, role: user.role },
+      "7d",
+    );
 
     const response = NextResponse.json(
       {
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     // Set cookies
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
     console.error("Login error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

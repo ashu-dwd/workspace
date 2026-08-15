@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Notebook, BookOpen, Clock, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 interface Notebook {
   id: number;
@@ -19,7 +19,7 @@ interface DashboardData {
   recentNotebooks: Notebook[];
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+//  Helpers ──
 
 function relativeTime(date: string | null): string {
   if (!date) return "Never";
@@ -53,7 +53,7 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
+//  Skeleton ─
 
 function DashboardSkeleton() {
   return (
@@ -84,7 +84,7 @@ function DashboardSkeleton() {
   );
 }
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
+//  Stat Card
 
 const statCards = [
   {
@@ -128,7 +128,7 @@ const statCards = [
   },
 ];
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
+//  Main Page
 
 export default function DashboardPage() {
   const { data, isLoading, isError, error, refetch } = useQuery<DashboardData>({
@@ -201,9 +201,7 @@ export default function DashboardPage() {
         {!hasNotebooks ? (
           <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed text-center">
             <Notebook className="size-10 text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground mb-1">
-              No notebooks yet
-            </p>
+            <p className="text-muted-foreground mb-1">No notebooks yet</p>
             <p className="text-sm text-muted-foreground/60">
               Create your first notebook to get started.
             </p>

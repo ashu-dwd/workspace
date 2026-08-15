@@ -17,11 +17,11 @@ function getUserId(request: NextRequest): number | null {
   }
 }
 
-// ─── GET /api/notebooks/[id] — get single notebook ──────────────────────────
+//  GET /api/notebooks/[id] — get single notebook ──
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const userId = getUserId(request);
@@ -32,21 +32,27 @@ export async function GET(
     const { id } = await params;
     const notebookId = Number(id);
     if (isNaN(notebookId)) {
-      return NextResponse.json({ message: "Invalid notebook ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid notebook ID" },
+        { status: 400 },
+      );
     }
 
     const [notebook] = await db
       .select()
       .from(notebooksTable)
       .where(
-        and(eq(notebooksTable.id, notebookId), eq(notebooksTable.userId, userId))
+        and(
+          eq(notebooksTable.id, notebookId),
+          eq(notebooksTable.userId, userId),
+        ),
       )
       .limit(1);
 
     if (!notebook) {
       return NextResponse.json(
         { message: "Notebook not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -55,16 +61,16 @@ export async function GET(
     console.error("Get notebook error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// ─── PATCH /api/notebooks/[id] — update a notebook ──────────────────────────
+//  PATCH /api/notebooks/[id] — update a notebook ──
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const userId = getUserId(request);
@@ -75,7 +81,10 @@ export async function PATCH(
     const { id } = await params;
     const notebookId = Number(id);
     if (isNaN(notebookId)) {
-      return NextResponse.json({ message: "Invalid notebook ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid notebook ID" },
+        { status: 400 },
+      );
     }
 
     const body = await request.json();
@@ -83,7 +92,7 @@ export async function PATCH(
     if (!validation.success) {
       return NextResponse.json(
         { message: validation.error.issues[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,7 +105,7 @@ export async function PATCH(
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         { message: "No fields to update" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,14 +113,17 @@ export async function PATCH(
       .update(notebooksTable)
       .set(updates)
       .where(
-        and(eq(notebooksTable.id, notebookId), eq(notebooksTable.userId, userId))
+        and(
+          eq(notebooksTable.id, notebookId),
+          eq(notebooksTable.userId, userId),
+        ),
       )
       .returning();
 
     if (!notebook) {
       return NextResponse.json(
         { message: "Notebook not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -120,16 +132,16 @@ export async function PATCH(
     console.error("Update notebook error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// ─── DELETE /api/notebooks/[id] — delete a notebook ─────────────────────────
+//  DELETE /api/notebooks/[id] — delete a notebook ─
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const userId = getUserId(request);
@@ -140,20 +152,26 @@ export async function DELETE(
     const { id } = await params;
     const notebookId = Number(id);
     if (isNaN(notebookId)) {
-      return NextResponse.json({ message: "Invalid notebook ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid notebook ID" },
+        { status: 400 },
+      );
     }
 
     const [deleted] = await db
       .delete(notebooksTable)
       .where(
-        and(eq(notebooksTable.id, notebookId), eq(notebooksTable.userId, userId))
+        and(
+          eq(notebooksTable.id, notebookId),
+          eq(notebooksTable.userId, userId),
+        ),
       )
       .returning({ id: notebooksTable.id });
 
     if (!deleted) {
       return NextResponse.json(
         { message: "Notebook not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -162,7 +180,7 @@ export async function DELETE(
     console.error("Delete notebook error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -5,7 +5,7 @@ import { notebooksTable } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createNotebookSchema } from "@/interface/notebook";
 
-// ─── Auth helper ─────────────────────────────────────────────────────────────
+//  Auth helper ─
 
 function getUserId(request: NextRequest): number | null {
   const token = request.cookies.get("accessToken")?.value;
@@ -18,7 +18,7 @@ function getUserId(request: NextRequest): number | null {
   }
 }
 
-// ─── GET /api/notebooks — list user's notebooks ──────────────────────────────
+//  GET /api/notebooks — list user's notebooks
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,12 +52,12 @@ export async function GET(request: NextRequest) {
     console.error("List notebooks error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// ─── POST /api/notebooks — create a notebook ────────────────────────────────
+//  POST /api/notebooks — create a notebook ──
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { message: validation.error.issues[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     console.error("Create notebook error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

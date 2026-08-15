@@ -2,10 +2,17 @@
 
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Notebook, Search, Plus, LoaderCircleIcon, CheckSquare, Sparkles } from "lucide-react";
+import {
+  Notebook,
+  Search,
+  Plus,
+  LoaderCircleIcon,
+  CheckSquare,
+  Sparkles,
+} from "lucide-react";
 import { summarizeTodos } from "@/lib/todo-parser";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 interface NotebookListItem {
   id: number;
@@ -20,7 +27,7 @@ interface Props {
   onSelect: (id: number) => void;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+//  Helpers ──
 
 function relativeTime(date: string | null): string {
   if (!date) return "";
@@ -40,7 +47,7 @@ function relativeTime(date: string | null): string {
   }
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+//  Component
 
 export default function NotebookSidebar({ selectedId, onSelect }: Props) {
   const queryClient = useQueryClient();
@@ -75,7 +82,7 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
     },
   });
 
-  // ── AI search ───────────────────────────────────────────────────────────────
+  // ── AI search
 
   const handleAiSearch = async (query: string) => {
     const allNotebooks = data?.data ?? [];
@@ -132,7 +139,7 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
   const notebooks = data?.data ?? [];
   const filtered = search
     ? notebooks.filter((n) =>
-        n.title.toLowerCase().includes(search.toLowerCase())
+        n.title.toLowerCase().includes(search.toLowerCase()),
       )
     : notebooks;
 
@@ -169,7 +176,8 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
                 setSearch(val);
 
                 if (aiSearch && val.trim()) {
-                  if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+                  if (aiDebounceRef.current)
+                    clearTimeout(aiDebounceRef.current);
                   aiDebounceRef.current = setTimeout(() => {
                     handleAiSearch(val);
                   }, 300);
@@ -182,7 +190,9 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
           <button
             onClick={() => setAiSearch(!aiSearch)}
             className={`size-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-              aiSearch ? "bg-accent text-accent-foreground" : "hover:bg-muted text-muted-foreground"
+              aiSearch
+                ? "bg-accent text-accent-foreground"
+                : "hover:bg-muted text-muted-foreground"
             }`}
             title="AI Search"
           >
@@ -201,8 +211,12 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
             </div>
           ) : (
             <>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">AI Answer</p>
-              <p className="text-foreground text-xs leading-relaxed">{aiAnswer}</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">
+                AI Answer
+              </p>
+              <p className="text-foreground text-xs leading-relaxed">
+                {aiAnswer}
+              </p>
             </>
           )}
         </div>

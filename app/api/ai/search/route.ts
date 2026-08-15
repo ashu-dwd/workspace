@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { callOpenRouterNonStreaming } from "@/lib/ai";
 
-// ─── Auth helpers ────────────────────────────────────────────────────────────
+// th helpers
 
 function getUserId(request: NextRequest): number | null {
   const token = request.cookies.get("accessToken")?.value;
@@ -21,7 +21,7 @@ function getApiKey(request: NextRequest): string | null {
   return auth.slice(7);
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// pes
 
 interface NotebookInput {
   id: number;
@@ -29,7 +29,7 @@ interface NotebookInput {
   content: string;
 }
 
-// ─── POST /api/ai/search ────────────────────────────────────────────────────
+// ST /api/ai/search ─
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { message: "API key is required in Authorization header" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,23 +53,20 @@ export async function POST(request: NextRequest) {
     if (!query || typeof query !== "string") {
       return NextResponse.json(
         { message: "query is required and must be a string" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!Array.isArray(notebooks) || notebooks.length === 0) {
       return NextResponse.json(
         { message: "notebooks must be a non-empty array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Build context from notebooks
     const notebookContext = notebooks
-      .map(
-        (nb) =>
-          `# ${nb.title}\n${nb.content || "(empty)"}`
-      )
+      .map((nb) => `# ${nb.title}\n${nb.content || "(empty)"}`)
       .join("\n\n---\n\n");
 
     const systemPrompt = `Answer the user's question based on their notebook contents. Cite the notebook title(s). Be concise.

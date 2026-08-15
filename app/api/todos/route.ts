@@ -5,7 +5,7 @@ import { notebooksTable } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { parseTodos } from "@/lib/todo-parser";
 
-// ─── Auth helper ─────────────────────────────────────────────────────────────
+//  Auth helper ─
 
 function getUserId(request: NextRequest): number | null {
   const token = request.cookies.get("accessToken")?.value;
@@ -18,7 +18,7 @@ function getUserId(request: NextRequest): number | null {
   }
 }
 
-// ─── GET /api/todos — list all unchecked todos across notebooks ──────────────
+//  GET /api/todos — list all unchecked todos across notebooks ──
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     console.error("List todos error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

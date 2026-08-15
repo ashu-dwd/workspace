@@ -1,4 +1,4 @@
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types
 
 export interface TodoItem {
   text: string;
@@ -11,7 +11,7 @@ export interface TodoSummary {
   total: number;
 }
 
-// ─── Parse ───────────────────────────────────────────────────────────────────
+//  Parse
 
 const CHECKBOX_RE = /^- \[( |x)\] (.+)/;
 
