@@ -23,7 +23,8 @@ export const usersTable = pgTable("users", {
   otpExpiresAt: timestamp("otp_expires_at"),
   openrouterApiKey: varchar("openrouter_api_key", { length: 255 }),
   isVerified: boolean().default(false),
-
+  resetPwdToken: varchar({ length: 255 }),
+  resetPwdTokenExpiresAt: timestamp("reset_pwd_token_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
