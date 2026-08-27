@@ -33,7 +33,7 @@ interface Props {
   onDelete?: (id: number) => void;
 }
 
-//  Helpers ──
+//  Helpers
 
 function relativeTime(date: string | null): string {
   if (!date) return "";
@@ -79,7 +79,7 @@ export default function NotebookEditor({
     contentRef.current = content;
   }, [content]);
 
-  // ── Fetch notebook
+  // Fetch notebook
 
   const { data, isLoading, isError } = useQuery<{ data: NotebookData }>({
     queryKey: ["notebook", notebookId],
@@ -110,7 +110,7 @@ export default function NotebookEditor({
     }
   }, [data]);
 
-  // ── Auto-save ──
+  // Auto-save on type with debounce
 
   const saveMutation = useMutation({
     mutationFn: async (updates: Record<string, unknown>) => {
