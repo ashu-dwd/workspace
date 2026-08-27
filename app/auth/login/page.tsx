@@ -53,7 +53,7 @@ export default function Login() {
       router.push("/dashboard"); // Redirect to home or dashboard
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Invalid email or password"
+        error instanceof Error ? error.message : "Invalid email or password",
       );
     }
   }
@@ -111,6 +111,14 @@ export default function Login() {
             className="text-primary underline underline-offset-4"
           >
             Sign up
+          </Link>
+        </div>
+        <div className="text-center text-sm">
+          <Link
+            href="/auth/forgot-pwd"
+            className="text-primary underline underline-offset-4"
+          >
+            Forgot your password?
           </Link>
         </div>
       </div>
