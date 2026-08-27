@@ -1,0 +1,26 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "workspace",
+	"compatibility_date": "2026-08-25",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"main": "vinext/server/fetch-handler",
+	"assets": {
+		"directory": "dist/client",
+		"not_found_handling": "none",
+		"binding": "ASSETS"
+	},
+	"cache": {
+		"enabled": true
+	},
+	"images": {
+		"binding": "IMAGES"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "VINEXT_KV_CACHE",
+			"id": "58919869ab5c420baa928b0d6c2bf1cd"
+		}
+	]
+}
