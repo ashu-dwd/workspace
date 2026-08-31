@@ -51,7 +51,7 @@ function YourNotebooksContent() {
   );
 }
 
-//  Page export ─
+//  Page export
 
 export default function YourNotebooksPage() {
   return (

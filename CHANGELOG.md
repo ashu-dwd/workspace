@@ -1,5 +1,7 @@
 ## RECENT CHANGES
 
+2026-08-27 — feat: paste PNG/JPEG/GIF/WebP images into notebook editor via private Vercel Blob uploads and authenticated image proxy
+
 2026-08-15 — fix: Vercel build uses Drizzle migrations instead of missing Prisma CLI
 
 2026-08-15 — fix: login redirect broken by `import { cookies }` (server-only API) in client login page; removed, verified login→cookie→/dashboard flow in browser

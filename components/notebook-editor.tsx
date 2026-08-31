@@ -66,11 +66,10 @@ export default function NotebookEditor({
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [ghostText, setGhostText] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialized = useRef(false);
+  const [initialized, setInitialized] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef(content);
 
@@ -102,13 +101,16 @@ export default function NotebookEditor({
   });
 
   // Sync fetched data into local state (only on initial load or notebook change)
+  // Local editor state must update after the asynchronous query resolves.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data?.data) {
       setTitle(data.data.title);
       setContent(data.data.content);
-      initialized.current = true;
+      setInitialized(true);
     }
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-save on type with debounce
 
@@ -156,29 +158,99 @@ export default function NotebookEditor({
     scheduleSave({ title: newTitle });
   };
 
+  const replaceUploadedPlaceholder = (
+    placeholder: string,
+    replacement: string,
+  ) => {
+    setContent((current) => {
+      const updated = current.replace(placeholder, replacement);
+      scheduleSave({ content: updated });
+      return updated;
+    });
+  };
+
+  async function uploadPastedImage(
+    file: File,
+    placeholder: string,
+    name: string,
+  ) {
+    const formData = new FormData();
+    formData.append("file", file, name);
+    formData.append("notebookId", String(notebookId));
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error("Image upload failed");
+      const blob = (await response.json()) as { url: string };
+      replaceUploadedPlaceholder(placeholder, `![${name}](${blob.url})`);
+    } catch {
+      const failed = `![Upload failed — ${name}](uploading)`;
+      replaceUploadedPlaceholder(placeholder, failed);
+      toast.error(`Upload failed for ${name}`, {
+        action: {
+          label: "Retry",
+          onClick: () => uploadPastedImage(file, failed, name),
+        },
+      });
+    }
+  }
+
+  const handleImagePaste = async (
+    event: React.ClipboardEvent<HTMLTextAreaElement>,
+  ) => {
+    const files = Array.from(event.clipboardData.items)
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (files.length === 0) return;
+
+    const allowedTypes = new Set([
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+    ]);
+    const validFiles = files.filter((file) => {
+      if (!allowedTypes.has(file.type)) {
+        toast.error(`${file.name || "Image"}: unsupported image type`);
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name || "Image"}: maximum size is 10 MB`);
+        return false;
+      }
+      return true;
+    });
+    if (validFiles.length === 0) return;
+
+    event.preventDefault();
+    const start = event.currentTarget.selectionStart;
+    const end = event.currentTarget.selectionEnd;
+    const timestamp = Date.now();
+    const placeholders = validFiles.map(
+      (_, index) =>
+        `![Uploading pasted-image-${timestamp}-${index}…](uploading)`,
+    );
+    const inserted = placeholders.join("\n");
+    const nextContent = content.slice(0, start) + inserted + content.slice(end);
+    setContent(nextContent);
+    scheduleSave({ content: nextContent });
+
+    await Promise.all(
+      validFiles.map((file, index) => {
+        const name = file.name || `pasted-image-${timestamp}-${index}.png`;
+        return uploadPastedImage(file, placeholders[index], name);
+      }),
+    );
+  };
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setContent(newContent);
-    setGhostText("");
     scheduleSave({ content: newContent });
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      triggerAutocomplete(newContent);
-    }, 500);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Tab" && ghostText) {
-      e.preventDefault();
-      const newContent = content + ghostText;
-      setContent(newContent);
-      setGhostText("");
-      scheduleSave({ content: newContent });
-    }
-    if (e.key === "Escape" && ghostText) {
-      setGhostText("");
-    }
   };
 
   // ── Insert checkbox ──
@@ -205,9 +277,8 @@ export default function NotebookEditor({
 
   // ── Toggle checkbox in preview
 
-  // Module-level counter used inside ReactMarkdown custom components
-  // Reset before each render so indices stay consistent
-  const checkboxIdxRef = useRef(0);
+  // Render-local counter used inside ReactMarkdown custom components
+  let checkboxIdx = 0;
 
   const toggleCheckbox = useCallback(
     (targetIdx: number) => {
@@ -261,67 +332,6 @@ export default function NotebookEditor({
       toast.error(error.message);
     },
   });
-
-  // ── Autocomplete ──
-
-  const triggerAutocomplete = useCallback(
-    (text: string) => {
-      if (abortRef.current) abortRef.current.abort();
-      if (text.length < 10) {
-        setGhostText("");
-        return;
-      }
-
-      const apiKey = userData?.data?.openrouterApiKey;
-      if (!apiKey) return;
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      fetch("/api/ai/complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ context: text }),
-        signal: controller.signal,
-      })
-        .then(async (res) => {
-          const reader = res.body?.getReader();
-          if (!reader) return;
-
-          let buffer = "";
-          const decoder = new TextDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                if (data === "[DONE]") return;
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.token) {
-                    setGhostText((prev) => prev + parsed.token);
-                  }
-                } catch {
-                  /* skip malformed */
-                }
-              }
-            }
-          }
-        })
-        .catch(() => {});
-    },
-    [userData],
-  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -378,9 +388,6 @@ export default function NotebookEditor({
 
   // ── Render ──
 
-  // Reset checkbox index for this render
-  checkboxIdxRef.current = 0;
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
@@ -426,7 +433,7 @@ export default function NotebookEditor({
               Saving...
             </span>
           )}
-          {!saving && initialized.current && (
+          {!saving && initialized && (
             <span>Saved {relativeTime(notebook.updatedAt)}</span>
           )}
         </span>
@@ -491,24 +498,23 @@ export default function NotebookEditor({
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-components={{
-                      input: (props) => {
-                        if (props.type === "checkbox") {
-                          const idx = checkboxIdxRef.current;
-                          checkboxIdxRef.current++;
-                          return (
-                            <input
-                              type="checkbox"
-                              checked={props.checked ?? false}
-                              onChange={() => toggleCheckbox(idx)}
-                              className="cursor-pointer"
-                            />
-                          );
-                        }
-                        const { ref, ...rest } = props;
-                        return <input {...rest} />;
-                      },
-                    }}
+                  components={{
+                    input: (props) => {
+                      if (props.type === "checkbox") {
+                        const idx = checkboxIdx;
+                        checkboxIdx++;
+                        return (
+                          <input
+                            type="checkbox"
+                            checked={props.checked ?? false}
+                            onChange={() => toggleCheckbox(idx)}
+                            className="cursor-pointer"
+                          />
+                        );
+                      }
+                      return <input {...props} />;
+                    },
+                  }}
                 >
                   {content || "*No content yet*"}
                 </ReactMarkdown>
@@ -519,18 +525,10 @@ components={{
                   ref={textareaRef}
                   value={content}
                   onChange={handleContentChange}
-                  onKeyDown={handleKeyDown}
+                  onPaste={handleImagePaste}
                   placeholder="Start writing in markdown..."
                   className="w-full min-h-full bg-transparent border-none outline-none resize-none leading-relaxed placeholder:text-muted-foreground/30 font-mono text-sm"
                 />
-                {ghostText && (
-                  <div className="text-sm text-muted-foreground/40 italic mt-1">
-                    {ghostText}
-                    <span className="text-xs ml-2 text-muted-foreground/30">
-                      Tab to accept
-                    </span>
-                  </div>
-                )}
               </>
             )}
           </div>
