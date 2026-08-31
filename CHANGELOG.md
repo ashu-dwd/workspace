@@ -1,5 +1,7 @@
 ## RECENT CHANGES
 
+2026-09-01 — fix: signup skips email OTP and creates verified session
+
 2026-08-27 — fix: use TanStack Query v5 isPending upload state; remove duplicate root providers
 
 2026-08-27 — feat: paste PNG/JPEG/GIF/WebP images into notebook editor via private Vercel Blob uploads and authenticated image proxy

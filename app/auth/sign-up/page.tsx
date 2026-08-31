@@ -51,16 +51,8 @@ export default function SignUp() {
       if (!res.ok) {
         throw new Error(data.message || "Sign up failed");
       }
-      // form.reset();
-      if (data.data?.token) {
-        // Dev: auto-verified, go straight to dashboard
-        toast.success("Account created successfully!");
-        router.push("/dashboard");
-      } else {
-        // Production: verify via email OTP
-        toast.info("Please verify your email using the OTP sent to you.");
-        router.push("/auth/verify-otp?email=" + encodeURIComponent(values.email));
-      }
+      toast.success("Account created successfully!");
+      router.push("/dashboard");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to create an account"
