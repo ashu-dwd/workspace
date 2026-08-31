@@ -1,4 +1,3 @@
-import react from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -33,5 +32,5 @@ export function useFileUpload() {
     }
   };
 
-  return { uploadFile, isLoading: mutation?.isLoading };
+  return { uploadFile, isLoading: mutation.isPending };
 }

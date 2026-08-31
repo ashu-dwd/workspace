@@ -1,5 +1,7 @@
 ## RECENT CHANGES
 
+2026-08-27 — fix: use TanStack Query v5 isPending upload state; remove duplicate root providers
+
 2026-08-27 — feat: paste PNG/JPEG/GIF/WebP images into notebook editor via private Vercel Blob uploads and authenticated image proxy
 
 2026-08-15 — fix: Vercel build uses Drizzle migrations instead of missing Prisma CLI
