@@ -3,7 +3,7 @@ import { db } from "@/db/db";
 import { usersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { generateToken } from "@/lib/jwt";
+import { generateToken, getAuthCookieOptions } from "@/lib/jwt";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -80,22 +80,9 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
 
-    // Set cookies
-    response.cookies.set("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60, // 1 hour
-      path: "/",
-    });
-
-    response.cookies.set("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: "/",
-    });
+    // Set cookies with secure defaults
+    response.cookies.set("accessToken", accessToken, getAuthCookieOptions(60 * 60));
+    response.cookies.set("refreshToken", refreshToken, getAuthCookieOptions(7 * 24 * 60 * 60));
 
     return response;
   } catch (error) {

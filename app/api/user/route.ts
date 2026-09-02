@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { db } from "@/db/db";
-import { usersTable } from "@/db/schema";
+import { usersTable, notificationsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { updateProfileSchema, changePasswordSchema } from "@/interface/profile";
@@ -162,6 +162,20 @@ export async function PATCH(request: NextRequest) {
         avatarUrl: usersTable.avatarUrl,
         role: usersTable.role,
       });
+
+    const notificationMsg = updates.password
+      ? "Your password has been changed successfully."
+      : "Your profile information has been updated.";
+    const notificationType = updates.password
+      ? "security_update"
+      : "profile_updated";
+
+    await db.insert(notificationsTable).values({
+      userId,
+      type: notificationType,
+      message: notificationMsg,
+      isRead: false,
+    });
 
     return NextResponse.json({ data: updated });
   } catch (error) {

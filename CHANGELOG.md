@@ -1,6 +1,6 @@
 ## RECENT CHANGES
 
-2026-09-01 — fix: signup skips email OTP and creates verified session
+2026-09-01 — fix: signup skips email OTP and creates verified session; sanitize signup JWT
 
 2026-08-27 — fix: use TanStack Query v5 isPending upload state; remove duplicate root providers
 

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { message: validation.error.issues[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             ? "Email already exists"
             : "Username already exists",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,8 +56,14 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    const accessToken = generateToken(user, "1h");
-    const refreshToken = generateToken(user, "7d");
+    const tokenUser = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    };
+    const accessToken = generateToken(tokenUser, "1h");
+    const refreshToken = generateToken(tokenUser, "7d");
 
     const response = NextResponse.json(
       {
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
     console.error("Sign-up error:", error);
     return NextResponse.json(
       { message: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

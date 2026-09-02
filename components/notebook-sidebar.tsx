@@ -9,10 +9,10 @@ import {
   LoaderCircleIcon,
   CheckSquare,
   Sparkles,
+  Users,
+  User,
 } from "lucide-react";
 import { summarizeTodos } from "@/lib/todo-parser";
-
-//  Types
 
 interface NotebookListItem {
   id: number;
@@ -20,14 +20,17 @@ interface NotebookListItem {
   icon: string | null;
   content: string;
   updatedAt: string | null;
+  shareRole?: "editor" | "viewer";
+  owner?: {
+    username: string;
+    displayName: string | null;
+  };
 }
 
 interface Props {
   selectedId: number | null;
   onSelect: (id: number) => void;
 }
-
-//  Helpers ──
 
 function relativeTime(date: string | null): string {
   if (!date) return "";
@@ -47,21 +50,35 @@ function relativeTime(date: string | null): string {
   }
 }
 
-//  Component
-
 export default function NotebookSidebar({ selectedId, onSelect }: Props) {
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<"my" | "shared">("my");
   const [search, setSearch] = useState("");
   const [aiSearch, setAiSearch] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: NotebookListItem[] }>({
+  // Fetch user notebooks
+  const { data: myData, isLoading: myLoading } = useQuery<{
+    data: NotebookListItem[];
+  }>({
     queryKey: ["notebooks"],
     queryFn: async () => {
       const res = await fetch("/api/notebooks?limit=100");
       if (!res.ok) throw new Error("Failed to load notebooks");
+      return res.json();
+    },
+  });
+
+  // Fetch shared notebooks
+  const { data: sharedData, isLoading: sharedLoading } = useQuery<{
+    data: NotebookListItem[];
+  }>({
+    queryKey: ["notebooks-shared"],
+    queryFn: async () => {
+      const res = await fetch("/api/notebooks/shared");
+      if (!res.ok) throw new Error("Failed to load shared notebooks");
       return res.json();
     },
   });
@@ -82,10 +99,11 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
     },
   });
 
-  // ── AI search
-
   const handleAiSearch = async (query: string) => {
-    const allNotebooks = data?.data ?? [];
+    const allNotebooks = [
+      ...(myData?.data ?? []),
+      ...(sharedData?.data ?? []),
+    ];
     if (allNotebooks.length === 0) {
       setAiAnswer("No notebooks to search.");
       return;
@@ -136,18 +154,24 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
     setAiLoading(false);
   };
 
-  const notebooks = data?.data ?? [];
+  const currentNotebooks =
+    tab === "my" ? myData?.data ?? [] : sharedData?.data ?? [];
+
+  const isLoading = tab === "my" ? myLoading : sharedLoading;
+
   const filtered = search
-    ? notebooks.filter((n) =>
+    ? currentNotebooks.filter((n) =>
         n.title.toLowerCase().includes(search.toLowerCase()),
       )
-    : notebooks;
+    : currentNotebooks;
+
+  const sharedCount = sharedData?.data?.length ?? 0;
 
   return (
     <div className="w-64 border-r flex flex-col h-full bg-muted/20">
-      {/* Header */}
-      <div className="p-3 border-b relative">
-        <div className="flex items-center justify-between mb-2">
+      {/* Header & Tabs */}
+      <div className="p-3 border-b space-y-2 relative">
+        <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground">
             Notebooks
           </h2>
@@ -164,6 +188,37 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
             )}
           </button>
         </div>
+
+        {/* Tab Buttons */}
+        <div className="grid grid-cols-2 p-0.5 bg-muted/60 rounded-lg text-xs font-medium">
+          <button
+            onClick={() => setTab("my")}
+            className={`py-1.5 rounded-md transition-colors cursor-pointer ${
+              tab === "my"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            My Notes
+          </button>
+          <button
+            onClick={() => setTab("shared")}
+            className={`py-1.5 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+              tab === "shared"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span>Shared</span>
+            {sharedCount > 0 && (
+              <span className="bg-primary/20 text-primary px-1.5 py-0.2 text-[10px] font-bold rounded-full">
+                {sharedCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Search */}
         <div className="flex gap-1">
           <div className="relative flex-1">
             <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -203,7 +258,7 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
 
       {/* AI answer dropdown */}
       {aiSearch && (aiAnswer || aiLoading) && (
-        <div className="absolute left-3 right-3 top-full mt-1 z-20 bg-background border rounded-lg shadow-lg p-3 text-sm">
+        <div className="absolute left-3 right-3 top-24 z-20 bg-background border rounded-lg shadow-lg p-3 text-sm">
           {aiLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <LoaderCircleIcon className="size-3 animate-spin" />
@@ -230,7 +285,11 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            {search ? "No matches" : "No notebooks yet"}
+            {search
+              ? "No matches"
+              : tab === "shared"
+              ? "No shared notebooks"
+              : "No notebooks yet"}
           </p>
         ) : (
           filtered.map((nb) => {
@@ -249,9 +308,16 @@ export default function NotebookSidebar({ selectedId, onSelect }: Props) {
                   {nb.icon || "📝"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{nb.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {relativeTime(nb.updatedAt)}
+                  <p className="truncate font-medium flex items-center gap-1">
+                    <span className="truncate">{nb.title}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                    {tab === "shared" && nb.owner && (
+                      <span className="text-primary font-medium">
+                        By {nb.owner.displayName || nb.owner.username} •
+                      </span>
+                    )}
+                    <span>{relativeTime(nb.updatedAt)}</span>
                   </p>
                 </div>
                 {todoSummary.total > 0 && (

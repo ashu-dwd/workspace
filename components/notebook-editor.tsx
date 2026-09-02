@@ -12,11 +12,14 @@ import {
   CircleArrowLeft,
   CheckSquare,
   Sparkles,
+  Share2,
+  Lock,
 } from "lucide-react";
 import { toggleTodo } from "@/lib/todo-parser";
 import { toast } from "sonner";
+import { ShareNotebookModal } from "@/components/share-notebook-modal";
 
-//  Types
+// Types
 
 interface NotebookData {
   id: number;
@@ -25,6 +28,7 @@ interface NotebookData {
   icon: string | null;
   content: string;
   updatedAt: string | null;
+  userRole?: "owner" | "editor" | "viewer";
 }
 
 interface Props {
@@ -33,7 +37,7 @@ interface Props {
   onDelete?: (id: number) => void;
 }
 
-//  Helpers
+// Helpers
 
 function relativeTime(date: string | null): string {
   if (!date) return "";
@@ -53,8 +57,6 @@ function relativeTime(date: string | null): string {
   }
 }
 
-//  Component
-
 export default function NotebookEditor({
   notebookId,
   onBack,
@@ -66,6 +68,8 @@ export default function NotebookEditor({
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,13 +77,11 @@ export default function NotebookEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef(content);
 
-  // Keep ref in sync
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
 
   // Fetch notebook
-
   const { data, isLoading, isError } = useQuery<{ data: NotebookData }>({
     queryKey: ["notebook", notebookId],
     queryFn: async () => {
@@ -100,22 +102,25 @@ export default function NotebookEditor({
     },
   });
 
-  // Sync fetched data into local state (only on initial load or notebook change)
-  // Local editor state must update after the asynchronous query resolves.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data?.data) {
       setTitle(data.data.title);
       setContent(data.data.content);
       setInitialized(true);
+      if (data.data.userRole === "viewer") {
+        setPreview(true);
+      }
     }
   }, [data]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Auto-save on type with debounce
+  const userRole = data?.data?.userRole ?? "owner";
+  const isReadOnly = userRole === "viewer";
+  const isOwner = userRole === "owner";
 
+  // Auto-save mutation
   const saveMutation = useMutation({
     mutationFn: async (updates: Record<string, unknown>) => {
+      if (isReadOnly) return;
       const res = await fetch(`/api/notebooks/${notebookId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -134,25 +139,24 @@ export default function NotebookEditor({
 
   const scheduleSave = useCallback(
     (updates: Record<string, unknown>) => {
+      if (isReadOnly) return;
       setSaving(true);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveMutation.mutate(updates);
       }, 1500);
     },
-    [saveMutation],
+    [saveMutation, isReadOnly],
   );
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
 
-  // ── Handlers
-
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isReadOnly) return;
     const newTitle = e.target.value;
     setTitle(newTitle);
     scheduleSave({ title: newTitle });
@@ -188,48 +192,25 @@ export default function NotebookEditor({
     } catch {
       const failed = `![Upload failed — ${name}](uploading)`;
       replaceUploadedPlaceholder(placeholder, failed);
-      toast.error(`Upload failed for ${name}`, {
-        action: {
-          label: "Retry",
-          onClick: () => uploadPastedImage(file, failed, name),
-        },
-      });
+      toast.error(`Upload failed for ${name}`);
     }
   }
 
   const handleImagePaste = async (
     event: React.ClipboardEvent<HTMLTextAreaElement>,
   ) => {
+    if (isReadOnly) return;
     const files = Array.from(event.clipboardData.items)
       .filter((item) => item.kind === "file")
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null);
     if (files.length === 0) return;
 
-    const allowedTypes = new Set([
-      "image/png",
-      "image/jpeg",
-      "image/gif",
-      "image/webp",
-    ]);
-    const validFiles = files.filter((file) => {
-      if (!allowedTypes.has(file.type)) {
-        toast.error(`${file.name || "Image"}: unsupported image type`);
-        return false;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name || "Image"}: maximum size is 10 MB`);
-        return false;
-      }
-      return true;
-    });
-    if (validFiles.length === 0) return;
-
     event.preventDefault();
     const start = event.currentTarget.selectionStart;
     const end = event.currentTarget.selectionEnd;
     const timestamp = Date.now();
-    const placeholders = validFiles.map(
+    const placeholders = files.map(
       (_, index) =>
         `![Uploading pasted-image-${timestamp}-${index}…](uploading)`,
     );
@@ -239,7 +220,7 @@ export default function NotebookEditor({
     scheduleSave({ content: nextContent });
 
     await Promise.all(
-      validFiles.map((file, index) => {
+      files.map((file, index) => {
         const name = file.name || `pasted-image-${timestamp}-${index}.png`;
         return uploadPastedImage(file, placeholders[index], name);
       }),
@@ -247,15 +228,15 @@ export default function NotebookEditor({
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isReadOnly) return;
     const newContent = e.target.value;
     setContent(newContent);
     scheduleSave({ content: newContent });
     if (debounceRef.current) clearTimeout(debounceRef.current);
   };
 
-  // ── Insert checkbox ──
-
   const insertCheckbox = () => {
+    if (isReadOnly) return;
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -267,7 +248,6 @@ export default function NotebookEditor({
     setContent(newContent);
     scheduleSave({ content: newContent });
 
-    // Set cursor position after the inserted text
     requestAnimationFrame(() => {
       textarea.focus();
       const pos = start + 6;
@@ -275,13 +255,10 @@ export default function NotebookEditor({
     });
   };
 
-  // ── Toggle checkbox in preview
-
-  // Render-local counter used inside ReactMarkdown custom components
   let checkboxIdx = 0;
-
   const toggleCheckbox = useCallback(
     (targetIdx: number) => {
+      if (isReadOnly) return;
       const currentContent = contentRef.current;
       const lines = currentContent.split("\n");
       let idx = 0;
@@ -298,18 +275,13 @@ export default function NotebookEditor({
         }
       }
     },
-    [scheduleSave],
+    [scheduleSave, isReadOnly],
   );
-
-  // ── Polish ──
 
   const polishMutation = useMutation({
     mutationFn: async () => {
       const apiKey = userData?.data?.openrouterApiKey;
-      if (!apiKey) {
-        throw new Error("No API key configured. Add one in Settings.");
-      }
-
+      if (!apiKey) throw new Error("No API key configured in Settings.");
       const res = await fetch("/api/ai/polish", {
         method: "POST",
         headers: {
@@ -333,7 +305,6 @@ export default function NotebookEditor({
     },
   });
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortRef.current) abortRef.current.abort();
@@ -341,22 +312,21 @@ export default function NotebookEditor({
     };
   }, []);
 
-  // ── Delete ──
-
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/notebooks/${notebookId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) throw new Error("Failed to delete notebook");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       onDelete?.(notebookId);
     },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
   });
-
-  // ── States ──
 
   if (isLoading) {
     return (
@@ -376,7 +346,7 @@ export default function NotebookEditor({
               queryKey: ["notebook", notebookId],
             })
           }
-          className="text-sm text-primary underline underline-offset-4 cursor-pointer"
+          className="text-sm text-primary underline cursor-pointer"
         >
           Retry
         </button>
@@ -386,10 +356,18 @@ export default function NotebookEditor({
 
   const notebook = data.data;
 
-  // ── Render ──
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Read-Only Notice Banner */}
+      {isReadOnly && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-4 py-1.5 text-xs text-amber-800 dark:text-amber-200 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Lock className="size-3.5" />
+            You are viewing a read-only copy of this notebook.
+          </span>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0">
         {onBack && (
@@ -403,27 +381,25 @@ export default function NotebookEditor({
         )}
         <span className="text-lg leading-none">{notebook.icon || "📝"}</span>
 
-        {/* Todo button — only show in edit mode */}
-        {!preview && (
-          <button
-            onClick={insertCheckbox}
-            className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer"
-            title="Insert checkbox"
-          >
-            <CheckSquare className="size-4" />
-          </button>
-        )}
-
-        {/* Polish button — only show in edit mode */}
-        {!preview && (
-          <button
-            onClick={() => polishMutation.mutate()}
-            disabled={polishMutation.isPending}
-            className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
-            title="Polish note"
-          >
-            <Sparkles className="size-4" />
-          </button>
+        {/* Todo & Polish buttons — hidden in read-only mode */}
+        {!preview && !isReadOnly && (
+          <>
+            <button
+              onClick={insertCheckbox}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer"
+              title="Insert checkbox"
+            >
+              <CheckSquare className="size-4" />
+            </button>
+            <button
+              onClick={() => polishMutation.mutate()}
+              disabled={polishMutation.isPending}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
+              title="Polish note"
+            >
+              <Sparkles className="size-4" />
+            </button>
+          </>
         )}
 
         <span className="text-xs text-muted-foreground ml-auto flex items-center gap-2">
@@ -437,64 +413,81 @@ export default function NotebookEditor({
             <span>Saved {relativeTime(notebook.updatedAt)}</span>
           )}
         </span>
+
+        {/* Share Button */}
         <button
-          onClick={() => setPreview(!preview)}
-          className={`size-7 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-            preview ? "bg-accent" : "hover:bg-muted"
-          }`}
-          title={preview ? "Edit" : "Preview"}
+          onClick={() => setIsShareModalOpen(true)}
+          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border bg-background hover:bg-muted transition-colors cursor-pointer"
+          title="Share notebook"
         >
-          {preview ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
+          <Share2 className="size-3.5 text-primary" />
+          <span>Share</span>
         </button>
-        <div className="relative">
+
+        {/* Preview / Edit Toggle */}
+        {!isReadOnly && (
           <button
-            onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-            className="size-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive transition-colors cursor-pointer"
-            title="Delete"
+            onClick={() => setPreview(!preview)}
+            className={`size-7 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+              preview ? "bg-accent" : "hover:bg-muted"
+            }`}
+            title={preview ? "Edit" : "Preview"}
           >
-            <Trash2 className="size-4" />
+            {preview ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
           </button>
-          {showDeleteConfirm && (
-            <div className="absolute right-0 top-full mt-1 bg-background border rounded-lg shadow-lg p-3 z-10 w-48">
-              <p className="text-sm mb-2">Delete this notebook?</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 text-xs px-2 py-1 rounded-md border hover:bg-muted transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    deleteMutation.mutate();
-                  }}
-                  disabled={deleteMutation.isPending}
-                  className="flex-1 text-xs px-2 py-1 rounded-md bg-destructive text-destructive-foreground hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                </button>
+        )}
+
+        {/* Delete (Owner only) */}
+        {isOwner && (
+          <div className="relative">
+            <button
+              onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive transition-colors cursor-pointer"
+              title="Delete"
+            >
+              <Trash2 className="size-4" />
+            </button>
+            {showDeleteConfirm && (
+              <div className="absolute right-0 top-full mt-1 bg-background border rounded-lg shadow-lg p-3 z-10 w-48">
+                <p className="text-sm mb-2">Delete this notebook?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 text-xs px-2 py-1 rounded-md border hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      deleteMutation.mutate();
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="flex-1 text-xs px-2 py-1 rounded-md bg-destructive text-destructive-foreground hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Editor body */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="max-w-3xl mx-auto w-full px-8 py-6 flex-1 flex flex-col min-h-0">
-          {/* Title */}
           <input
             type="text"
             value={title}
             onChange={handleTitleChange}
+            disabled={isReadOnly}
             placeholder="Untitled"
-            className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-6 shrink-0"
+            className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-6 shrink-0 disabled:opacity-90"
           />
 
-          {/* Content — full remaining height */}
           <div className="flex-1 overflow-y-auto">
-            {preview ? (
+            {preview || isReadOnly ? (
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -507,6 +500,7 @@ export default function NotebookEditor({
                           <input
                             type="checkbox"
                             checked={props.checked ?? false}
+                            disabled={isReadOnly}
                             onChange={() => toggleCheckbox(idx)}
                             className="cursor-pointer"
                           />
@@ -520,20 +514,26 @@ export default function NotebookEditor({
                 </ReactMarkdown>
               </div>
             ) : (
-              <>
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={handleContentChange}
-                  onPaste={handleImagePaste}
-                  placeholder="Start writing in markdown..."
-                  className="w-full min-h-full bg-transparent border-none outline-none resize-none leading-relaxed placeholder:text-muted-foreground/30 font-mono text-sm"
-                />
-              </>
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={handleContentChange}
+                onPaste={handleImagePaste}
+                placeholder="Start writing in markdown..."
+                className="w-full min-h-full bg-transparent border-none outline-none resize-none leading-relaxed placeholder:text-muted-foreground/30 font-mono text-sm"
+              />
             )}
           </div>
         </div>
       </div>
+
+      {/* Share Modal Component */}
+      <ShareNotebookModal
+        notebookId={notebookId}
+        notebookTitle={title}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </div>
   );
 }

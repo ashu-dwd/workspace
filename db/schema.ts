@@ -10,6 +10,12 @@ import {
 
 // defining the role enum type first before using it in the table
 export const roleEnum = pgEnum("role", ["user", "admin"]);
+export const shareRoleEnum = pgEnum("share_role", ["editor", "viewer"]);
+export const publicAccessEnum = pgEnum("public_access", [
+  "off",
+  "viewer",
+  "editor",
+]);
 
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -40,6 +46,40 @@ export const notebooksTable = pgTable("notebooks", {
   subtitle: varchar({ length: 255 }),
   icon: varchar({ length: 10 }).default("📝"),
   content: text().notNull().default(""),
+  shareToken: varchar({ length: 64 }).unique(),
+  publicAccess: publicAccessEnum("public_access").default("off"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const notebookSharesTable = pgTable("notebook_shares", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  notebookId: integer()
+    .notNull()
+    .references(() => notebooksTable.id, { onDelete: "cascade" }),
+  sharedWithUserId: integer()
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  role: shareRoleEnum("role").default("viewer").notNull(),
+  invitedByUserId: integer()
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const notificationsTable = pgTable("notifications", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer()
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  type: varchar({ length: 50 }).notNull(),
+  message: text().notNull(),
+  isRead: boolean().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

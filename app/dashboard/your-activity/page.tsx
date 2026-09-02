@@ -297,7 +297,7 @@ export default function YourActivityPage() {
     }
   }
 
-  // ── Build activity timeline ───────────────────────────────────────────────
+  // ── Build activity timeline
 
   const events: ActivityEvent[] = [];
 

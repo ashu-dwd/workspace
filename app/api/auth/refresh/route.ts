@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, generateToken } from "@/lib/jwt";
+import { verifyToken, generateToken, getAuthCookieOptions } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,22 +32,9 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
 
-      // Set cookies
-      response.cookies.set("accessToken", newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60, // 1 hour
-        path: "/",
-      });
-
-      response.cookies.set("refreshToken", newRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-        path: "/",
-      });
+      // Set cookies with secure defaults
+      response.cookies.set("accessToken", newAccessToken, getAuthCookieOptions(60 * 60));
+      response.cookies.set("refreshToken", newRefreshToken, getAuthCookieOptions(7 * 24 * 60 * 60));
 
       return response;
     } catch (error) {

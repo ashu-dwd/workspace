@@ -64,6 +64,20 @@
       "when": 1786818057080,
       "tag": "0008_ordinary_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788357921860,
+      "tag": "0009_wise_luke_cage",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788359471727,
+      "tag": "0010_amazing_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

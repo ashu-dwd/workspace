@@ -3,13 +3,10 @@
 import React from "react";
 import {
   Activity,
-  BookMarked,
-  Calendar,
   CheckSquare,
   Home,
   Inbox,
   Notebook,
-  Search,
   Settings,
 } from "lucide-react";
 
@@ -18,13 +15,13 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useAppSelector } from "@/app/redux-toolkit/hooks";
+import { useQuery } from "@tanstack/react-query";
 
 // Menu items.
 const items = [
@@ -49,6 +46,11 @@ const items = [
     icon: Activity,
   },
   {
+    title: "Notifications",
+    url: "/dashboard/notifications",
+    icon: Inbox,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
@@ -56,9 +58,18 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const data = useAppSelector((state) => state.notebook);
-  console.log("notebook data in sidebar:", data);
-  //means
+  const { data: notificationsData } = useQuery<{ unreadCount?: number }>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) return { unreadCount: 0 };
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const unreadCount = notificationsData?.unreadCount ?? 0;
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -71,16 +82,18 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem
-                  className="py-1 mt-3 text-3xl"
-                  key={item.title}
-                >
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.title === "Notifications" && unreadCount > 0 && (
+                    <SidebarMenuBadge className="bg-primary text-primary-foreground font-semibold rounded-full px-2">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </SidebarMenuBadge>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

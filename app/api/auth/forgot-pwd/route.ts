@@ -22,12 +22,12 @@ export async function POST(req: NextRequest) {
       .where(eq(usersTable.email, email))
       .limit(1);
 
-    if (!user) {
+    if (user.length === 0) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Generate a password reset token (you can implement your own logic here)
-    const resetToken = generateToken({ email }, "1h") as string; // Token expires in 1 hour
+    const targetUser = user[0];
+    const resetToken = generateToken({ id: targetUser.id, email: targetUser.email }, "1h");
 
     // Save the reset token to the user's record in the database
     await db

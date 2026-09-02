@@ -40,7 +40,7 @@ export default function SignUp() {
           },
           body: JSON.stringify(newUser),
         }),
-    }
+    },
   );
 
   async function onSubmit(values: z.infer<typeof signUpSchema>) {
@@ -55,7 +55,7 @@ export default function SignUp() {
       router.push("/dashboard");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to create an account"
+        error instanceof Error ? error.message : "Failed to create an account",
       );
     }
   }

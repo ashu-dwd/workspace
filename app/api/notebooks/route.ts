@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { db } from "@/db/db";
-import { notebooksTable } from "@/db/schema";
+import { notebooksTable, notificationsTable } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createNotebookSchema } from "@/interface/notebook";
 
@@ -87,6 +87,14 @@ export async function POST(request: NextRequest) {
         content,
       })
       .returning();
+
+    //create a notification for the user about the new notebook
+    await db.insert(notificationsTable).values({
+      userId,
+      type: "notebook_created",
+      message: `You have created a new notebook: ${title}`,
+      isRead: false,
+    });
 
     return NextResponse.json({ data: notebook }, { status: 201 });
   } catch (error) {
