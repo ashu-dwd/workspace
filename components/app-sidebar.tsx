@@ -15,10 +15,12 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -71,19 +73,22 @@ export function AppSidebar() {
   const unreadCount = notificationsData?.unreadCount ?? 0;
 
   return (
-    <Sidebar>
-      <SidebarContent>
-        {/* Logo + branding */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b mb-2">
-          <img src="/grid.png" alt="Workspace" className="size-7" />
-          <span className="font-semibold text-base">Workspace</span>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="flex items-center justify-between flex-row p-3 border-b">
+        <div className="flex items-center gap-2 min-w-0 group-data-[collapsible=icon]:hidden">
+          <img src="/grid.png" alt="Workspace" className="size-6 flex-shrink-0" />
+          <span className="font-semibold text-base truncate">Workspace</span>
         </div>
+        <SidebarTrigger className="hover:bg-muted transition-colors cursor-pointer group-data-[collapsible=icon]:mx-auto" />
+      </SidebarHeader>
+
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={item.title}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

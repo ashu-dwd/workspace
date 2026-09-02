@@ -2,7 +2,7 @@ import { put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { notebooksTable } from "@/db/schema";
+import { notebooksTable, notebookSharesTable } from "@/db/schema";
 import { verifyToken } from "@/lib/jwt";
 
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -59,15 +59,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check notebook existence & permissions
     const [notebook] = await db
-      .select({ id: notebooksTable.id })
+      .select({
+        id: notebooksTable.id,
+        userId: notebooksTable.userId,
+        publicAccess: notebooksTable.publicAccess,
+      })
       .from(notebooksTable)
-      .where(
-        and(
-          eq(notebooksTable.id, notebookId),
-          eq(notebooksTable.userId, userId),
-        ),
-      )
+      .where(eq(notebooksTable.id, notebookId))
       .limit(1);
 
     if (!notebook) {
@@ -77,12 +77,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Edit permission check: Owner OR Shared Editor OR Public Link Editor
+    let canEdit = notebook.userId === userId;
+
+    if (!canEdit) {
+      const [editorShare] = await db
+        .select({ id: notebookSharesTable.id })
+        .from(notebookSharesTable)
+        .where(
+          and(
+            eq(notebookSharesTable.notebookId, notebookId),
+            eq(notebookSharesTable.sharedWithUserId, userId),
+            eq(notebookSharesTable.role, "editor"),
+          ),
+        )
+        .limit(1);
+
+      if (editorShare) canEdit = true;
+    }
+
+    if (!canEdit && notebook.publicAccess === "editor") {
+      canEdit = true;
+    }
+
+    if (!canEdit) {
+      return NextResponse.json(
+        { message: "You do not have permission to upload images to this notebook" },
+        { status: 403 },
+      );
+    }
+
     const safeName = (file.name || "pasted-image.png").replace(
       /[^a-zA-Z0-9._-]/g,
       "-",
     );
     const blob = await put(
-      `users/${userId}/notebooks/${notebookId}/${safeName}`,
+      `users/${notebook.userId}/notebooks/${notebookId}/${safeName}`,
       file,
       { access: "private", addRandomSuffix: true },
     );

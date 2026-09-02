@@ -2,7 +2,7 @@ import { get } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { notebooksTable } from "@/db/schema";
+import { notebooksTable, notebookSharesTable } from "@/db/schema";
 import { verifyToken } from "@/lib/jwt";
 
 function getUserId(request: NextRequest): number | null {
@@ -20,24 +20,66 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const userId = getUserId(request);
-  if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
   const resolvedParams = await params;
   const pathname = resolvedParams.path.join("/");
+
+  // Match pattern: users/{ownerId}/notebooks/{notebookId}/{filename}
   const match = pathname.match(/^users\/([^/]+)\/notebooks\/(\d+)\/(.+)$/);
-  if (!match || Number(match[1]) !== userId) {
+  if (!match) {
     return new NextResponse("Not found", { status: 404 });
   }
 
+  const ownerId = Number(match[1]);
   const notebookId = Number(match[2]);
+  if (isNaN(ownerId) || isNaN(notebookId)) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Fetch notebook details
   const [notebook] = await db
-    .select({ id: notebooksTable.id })
+    .select({
+      id: notebooksTable.id,
+      userId: notebooksTable.userId,
+      publicAccess: notebooksTable.publicAccess,
+    })
     .from(notebooksTable)
-    .where(
-      and(eq(notebooksTable.id, notebookId), eq(notebooksTable.userId, userId)),
-    )
+    .where(eq(notebooksTable.id, notebookId))
     .limit(1);
-  if (!notebook) return new NextResponse("Not found", { status: 404 });
+
+  if (!notebook) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Permission checks for image access:
+  // 1. Is requesting user the owner?
+  let hasAccess = userId !== null && userId === notebook.userId;
+
+  // 2. Is requesting user a shared collaborator (editor or viewer)?
+  if (!hasAccess && userId !== null) {
+    const [share] = await db
+      .select({ id: notebookSharesTable.id })
+      .from(notebookSharesTable)
+      .where(
+        and(
+          eq(notebookSharesTable.notebookId, notebookId),
+          eq(notebookSharesTable.sharedWithUserId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (share) {
+      hasAccess = true;
+    }
+  }
+
+  // 3. Is public link access enabled on the notebook?
+  if (!hasAccess && notebook.publicAccess && notebook.publicAccess !== "off") {
+    hasAccess = true;
+  }
+
+  if (!hasAccess) {
+    return new NextResponse("Unauthorized", { status: userId ? 403 : 401 });
+  }
 
   const blob = await get(pathname, { access: "private" });
   if (!blob || blob.statusCode !== 200) {
